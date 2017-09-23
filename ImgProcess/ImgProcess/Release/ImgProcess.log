@@ -1,0 +1,117 @@
+﻿  stdafx.cpp
+  Markup.cpp
+  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
+  lodepng.cpp
+  jpgd.cpp
+  ImgRecQR.cpp
+ImgRecQR.cpp(207): warning C4018: “<”: 有符号/无符号不匹配
+  ImgProcess.cpp
+ImgProcess.cpp(295): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(332): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(381): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(421): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(428): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(478): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(480): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(515): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(518): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(543): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(668): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(679): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(752): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(795): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(872): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1242): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1512): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1520): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1528): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1536): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1544): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1629): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(1629): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1631): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1631): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(1633): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(1716): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImgProcess.cpp(1728): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1777): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1846): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1849): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImgProcess.cpp(1854): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(1963): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3082): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3090): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3160): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(3160): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3162): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3162): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(3164): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(3218): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3332): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3381): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3400): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3828): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(3829): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(3830): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(3831): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(3893): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+ImgProcess.cpp(3896): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+ImgProcess.cpp(3899): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+ImgProcess.cpp(3902): warning C4244: “参数”: 从“double”转换到“int”，可能丢失数据
+ImgProcess.cpp(3929): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(3937): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4006): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(4006): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4008): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4008): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(4010): warning C4018: “>”: 有符号/无符号不匹配
+ImgProcess.cpp(4056): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(4057): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(4058): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(4059): warning C4244: “=”: 从“int”转换到“float”，可能丢失数据
+ImgProcess.cpp(4205): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4230): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4234): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+ImgProcess.cpp(4263): warning C4305: “+=”: 从“double”到“float”截断
+ImgProcess.cpp(4331): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4333): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4350): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4394): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4572): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4602): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImgProcess.cpp(4635): warning C4018: “<”: 有符号/无符号不匹配
+ImgProcess.cpp(4637): warning C4018: “<”: 有符号/无符号不匹配
+  ImageReaderSource.cpp
+  ImageProcess.cpp
+ImageProcess.cpp(81): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(238): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(302): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(507): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(763): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+ImageProcess.cpp(764): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+ImageProcess.cpp(779): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImageProcess.cpp(1407): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(1480): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(1483): warning C4018: “>”: 有符号/无符号不匹配
+ImageProcess.cpp(1491): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImageProcess.cpp(1557): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImageProcess.cpp(1593): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImageProcess.cpp(1632): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImageProcess.cpp(1669): warning C4800: “BOOL”: 将值强制为布尔值“true”或“false”(性能警告)
+ImageProcess.cpp(2419): warning C4018: “>=”: 有符号/无符号不匹配
+ImageProcess.cpp(2512): warning C4018: “<”: 有符号/无符号不匹配
+ImageProcess.cpp(2514): warning C4018: “<”: 有符号/无符号不匹配
+ImageProcess.cpp(2694): warning C4018: “<”: 有符号/无符号不匹配
+ImageProcess.cpp(2696): warning C4018: “<”: 有符号/无符号不匹配
+ImageProcess.cpp(2719): warning C4018: “<”: 有符号/无符号不匹配
+ImageProcess.cpp(2721): warning C4018: “<”: 有符号/无符号不匹配
+  CurImage.cpp
+  正在生成代码...
+f:\专网版客户端\采集端(svn)\trunk\imgprocess\imgprocess\imgprocess.cpp(922): warning C4172: 返回局部变量或临时变量的地址: rect
+f:\专网版客户端\采集端(svn)\trunk\imgprocess\imgprocess\imgprocess.cpp(932): warning C4172: 返回局部变量或临时变量的地址: dstRect
+f:\专网版客户端\采集端(svn)\trunk\imgprocess\imgprocess\imgprocess.cpp(4648): warning C4715: “ZYJ_GetOmrSyncHead”: 不是所有的控件路径都返回值
+f:\专网版客户端\采集端(svn)\trunk\imgprocess\imgprocess\xml\markup.cpp(1444): warning C4700: 使用了未初始化的局部变量“dwErr”
+C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(1189,5): warning MSB8012: TargetPath(E:\铭育科技\V3.0\Ass_Prj_4\code\imgprocess\release\Release\ImgProcess.dll) does not match the Linker's OutputFile property value (F:\专网版客户端\采集端(SVN)\trunk\bin\release\ImgProcess.dll). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Link.OutputFile).
+    正在创建库 ..\..\lib\ImgProcess.lib 和对象 ..\..\lib\ImgProcess.exp
+  ImgProcess.vcxproj -> E:\铭育科技\V3.0\Ass_Prj_4\code\imgprocess\release\Release\ImgProcess.dll
+  ImgProcess.vcxproj -> E:\铭育科技\V3.0\Ass_Prj_4\code\imgprocess\release\Release\ImgProcess.pdb (Full PDB)

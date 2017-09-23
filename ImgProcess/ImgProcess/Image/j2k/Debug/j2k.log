@@ -1,0 +1,2 @@
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(1357,5): warning MSB8012: TargetPath(E:\远景\ImgProcess\ImgProcess\lib\j2k.lib) does not match the Library's OutputFile property value (F:\专网版客户端\采集端(SVN)\trunk\ImgProcess\ImgProcess\lib\j2k.lib). This may cause your project to build incorrectly. To correct this, please make sure that $(OutDir), $(TargetName) and $(TargetExt) property values match the value specified in %(Lib.OutputFile).
+  j2k.vcxproj -> E:\远景\ImgProcess\ImgProcess\lib\j2k.lib

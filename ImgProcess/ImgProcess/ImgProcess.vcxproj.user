@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommandArguments>--userid 224 --username D002 --subjectid 31 --subjectname 英语 --general client_yingyu;client_yingyu;192.168.10.48,1521,orcl  --roleid 3 --rolename 切图识别</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>F:\专网版客户端\采集端(SVN)\trunk\bin\debug\</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>F:\专网版客户端\采集端(SVN)\trunk\bin\debug\CutRecognize.exe</LocalDebuggerCommand>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommand>F:\专网版客户端\采集端(SVN)\trunk\bin\debug\Scanner.exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>
