@@ -1,0 +1,36 @@
+; ImgProcess.def : 声明 DLL 的模块参数。
+
+LIBRARY      "ImgProcess"
+
+EXPORTS
+; 此处可以是显式导出
+ZYJ_GetCurOmrRes1
+ZYJ_CutImg
+ZYJ_GetLastError
+ZYJ_SaveImgHandle
+ZYJ_IsComplete
+ZYJ_Cximage2Iplimage
+ZYJ_SaveIplImage
+ZYJ_GetImgEdge
+ZYJ_GetAllImgLocalPoints
+ZYJ_SetImgCoordinateSystem
+ZYJ_GetImgSize
+ZYJ_GetExamTitle
+ZYJ_GetTemplatePage
+ZYJ_GetTemplateQRTitle
+ZYJ_GetQRKh
+ZYJ_GetQRCodeRes
+ZYJ_IsNeedOmr
+ZYJ_IsNeedRecScore
+ZYJ_GetTitleFromID
+ZYJ_GetRectsFromID
+ZYJ_GetQuestionTypeFromID
+ZYJ_GetPageFromID
+ZYJ_GetElementSize
+ZYJ_GetElement
+ZYJ_CutImage
+ZYJ_GetCurOmrRes3
+ZYJ_IsCardAbsent
+ZYJ_GetOmrSyncHead
+ZYJ_GetOmrSyncHead_1
+ZYJ_GetCurOmrRes4
