@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // ImgProcess.cpp : 定义 DLL 的初始化例程。
 //
 
@@ -3042,3 +3043,3049 @@ extern "C" DLL_EXPORT bool ZYJ_GetImgSize(const char *cPath,  int &nImgWidth, in
 }
 
 
+=======
+// ImgProcess.cpp : 定义 DLL 的初始化例程。
+//
+
+#include "stdafx.h"
+#include "ImgProcess.h"
+#include "CurImage.h"
+#include "include/zyj-dllexport.h"
+#include <shlwapi.h>
+#include <map>
+//#include "FtpProcess.h"
+//using namespace std;
+#pragma comment(lib,"Shlwapi.lib")
+
+
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#endif
+
+struct OMR_ZUID
+{
+	int nPage;
+	int nID;
+	int nABFlag;
+	OMR_ZUID()
+	{
+		nABFlag = -1;
+	}
+};
+
+//static CImageProcess *g_imgProcess = NULL;
+static int g_nLocalType = 2;
+static vector<RECTARRAY> g_v_modelRectArrays; //模板中客观题区域
+static vector<NEWRECT>   g_v_rectModelLocal;    //模板中三个定位点所在矩形位置
+static vector<OMR_ZUID> g_v_omrZuIDs; //客观题对应各组ID
+static vector<RECTARRAY> g_v_modelKhRA; //模板中考号区域
+
+
+//ANS *g_Ans = NULL;
+//int g_index = 0;
+
+///*
+//函数说明: 获取客观题坐标数组
+//*/
+// BOOL ZYJ_GetOmrModelRects(RECTARRAY *v_allModelRArrays, int &nSize, int nPage);
+
+/*
+函数说明:初始化
+返回结果：TRUE 成功 FALSE :失败
+参数说明:
+cPath: 传入图像文件路径;
+nFileType: 图像文件类型  TYPE_BMP,TYPE_JPG,TYPE_PNG,TYPE_TIF等
+nThreshold: OMR定位识别阈值
+*/
+// BOOL ZYJ_Init(const char *cPath, int nFileType, int nThreshold); //文件路径
+
+/*
+函数说明: 获取目标图像矩形阵列
+返回结果:  TRUE 成功  FALSE：失败
+参数说明:
+ rectArea:   某一阵列OMR所在区域
+ modelArray: 模板当中OMR矩形阵列信息
+ modelsize:  模板中矩形个数
+ dstArry:    需获取目标矩形阵列
+*/
+BOOL ZYJ_GetRectArray(int nOmrType, vector<RECTARRAY> &dstArray, int nRecType, int nZuID, CxImage *srcImg, CurImage *imgPara); //获取客观题矩形阵列
+
+/*
+函数说明: 判断某一矩形阵列是否填涂,主要针对未填涂
+*/
+BOOL ZYJ_IsUnFilling(RECTARRAY &srcRect, int nThreshold, CxImage *srcImg);
+
+/*
+函数说明:获取多个矩形阵列的平均填涂密度, 主要针对未填涂的A,B,C,D等单个求解各自平均密度
+*/
+ /*double ZYJ_GetAvrDensity(RECTARRAY *srcRects, int nSize, CxImage *srcImg);*/
+
+/*
+函数说明:获取矩形定位点
+参数说明:
+rectArea:         图像上矩形框选区域
+nModelRectWidth:  模板中定位点矩形宽度
+nModelRectHeight: 模板中定位点矩形高度
+dstRect         : 待求目标定位点矩形
+*/
+ bool ZYJ_GetRectLocalPoint(NEWRECT rectArea,int nModelRectWidth, int nModelRectHeight, int nIndex, int nRectType, NEWRECT &dstRect,  CxImage *srcImg, CurImage *ImgPara); //
+
+
+/*
+函数说明:获取客观题识别结果
+
+*/
+
+ bool ZYJ_GetOmrResult(vector<RECTARRAY> &srcRects, int nSize, int nSelCheck, vector<RECTARRAY> modelRectArry, int &nFillAverGray);
+
+
+/*
+函数说明:合并子图相关
+参数说明:
+srcImg:      带切割图像原图 灰度图像
+rectArea:    当前待切割矩形区域
+dstImgPath:  目标图像文件路径，存在合并保存，不存在直接保存
+*/
+
+//extern "C" DLL_EXPORT bool ZYJ_CutImg(const IplImage *srcImg,  const CvRect rectArea,  char *dstImgPath);
+
+/*
+函数说明:合并并保存子图
+*/
+//bool ZYJ_CutImg(NEWRECT rectArea,const char *cPath);
+
+
+CRect &NewRect2Rect(NEWRECT newRect);
+NEWRECT &Rect2NewRect(CRect rect);
+bool GetRectArry(vector<RECTARRAY> &v_DstRectArray, vector<CRect> v_allRects, vector<RECTARRAY> v_modelRects);
+bool GetRectArry_1(vector<RECTARRAY> &v_DstRectArray, vector<RECTARRAY> v_curRectArray, vector<RECTARRAY> v_modelRects,  CxImage *srcImg, int nThreshold);
+
+double GetGrayDensity(NEWRECT rectArea, int nThrshold,  CxImage *srcImg, int &nAverValue);
+
+bool MergeNewImage(CxImage img1,  CxImage img2, CString strNewImg);
+void sort(vector<RECTARRAY> &v_dstArrays);
+bool GetModelRectArray(RECTARRAY rectArray, vector<RECTARRAY> modelRectArray, RECTARRAY &dstModelRArray);
+NEWRECT GetRectArea(const RECTARRAY *v_modelrArray, CxImage *srcImg);
+NEWRECT GetRectArea1(NEWRECT rect1, int nOmrSize, CxImage *srcImg);
+
+DWORD GetFileType1(const CString strImgPath);
+int GetBlackColor(CxImage cxImage);    
+
+
+BEGIN_MESSAGE_MAP(CImgProcessApp, CWinApp)
+END_MESSAGE_MAP()
+
+
+
+// CImgProcessApp 构造
+
+CImgProcessApp::CImgProcessApp()
+{
+	// TODO: 在此处添加构造代码，
+	// 将所有重要的初始化放置在 InitInstance 中
+}
+
+
+// 唯一的一个 CImgProcessApp 对象
+
+CImgProcessApp theApp;
+
+
+
+BOOL CImgProcessApp::InitInstance()
+{
+	CWinApp::InitInstance();
+
+	//if (g_imgProcess == NULL)
+	//	g_imgProcess = new CImageProcess();
+
+	return TRUE;
+}
+
+ int CImgProcessApp::ExitInstance()
+ {
+	 CWinApp::ExitInstance();
+
+	 return 0;
+ }
+
+ DWORD GetFileType1(const CString strImgPath)
+ {
+	 DWORD dFileType = CXIMAGE_FORMAT_UNKNOWN;
+	 CString strTmp = strImgPath;
+	 strTmp = strTmp.MakeLower();
+
+	 if (strTmp.Find(L".jpg") >= 0 || strTmp.Find(L".jpeg") >= 0)
+		 dFileType = CXIMAGE_FORMAT_JPG;
+	 else if (strTmp.Find(L".bmp") >= 0)
+		 dFileType = CXIMAGE_FORMAT_BMP;
+	 else if (strTmp.Find(L".png") >= 0)
+		 dFileType = CXIMAGE_FORMAT_PNG;
+	 else if (strTmp.Find(L".tif") >= 0 || strTmp.Find(L".tiff") >= 0)
+		 dFileType = CXIMAGE_FORMAT_TIF;
+	 else if (strTmp.Find(L".gif") >= 0)
+		 dFileType = CXIMAGE_FORMAT_GIF;
+	 else 
+		 dFileType = CXIMAGE_FORMAT_UNKNOWN;
+
+	 return dFileType;
+ }
+
+ bool GetModelRectArray(RECTARRAY rectArray, vector<RECTARRAY> modelRectArray, RECTARRAY &dstModelRArray)
+ {
+	int nSize = modelRectArray.size();
+	for (int i=0; i<nSize; i++)
+	{
+		RECTARRAY rArray1 = modelRectArray[i];
+		if (rectArray.nQuestionNo == rArray1.nQuestionNo)
+		{
+			if (rectArray.nAnswerIndex == rArray1.nAnswerIndex)
+			{
+				dstModelRArray = rArray1;
+				return TRUE;
+			}
+		}
+	}
+
+	 return FALSE;
+ }
+
+ BOOL ZYJ_IsUnFilling(RECTARRAY &srcRect, int nThreshold, CxImage *srcImg)
+ {
+	 if (!srcImg)
+		 return FALSE;
+
+	 RECT rectArea;
+	 NEWRECT rect = srcRect.rect;
+	 rectArea.top = rect.pTopLeft.nY;
+	 rectArea.bottom = rect.pBottomRight.nY;
+	 rectArea.left = rect.pTopLeft.nX;
+	 rectArea.right = rect.pBottomRight.nX;
+	 CxImage cropImg; 
+	 srcImg->Crop(rectArea, &cropImg);
+	 cropImg.GrayScale();
+
+	 int nImgWidth = cropImg.GetWidth();
+	 int nImgHeight = cropImg.GetHeight();
+
+	 if (nImgHeight*nImgWidth <= 0)
+		 return FALSE;
+
+	 int nWhilteWidth = 0;
+	 bool bFindWhite[2] = {FALSE , FALSE};
+	 for (int i=0; i<nImgWidth/2; i++)
+	 {
+		 int nCount = 0; 
+		 for (int j=0; j<nImgHeight; j++)
+		 {
+			 if (GETGRAYVALUE2(cropImg, i, j) > nThreshold)
+			 {
+				 nCount++;
+			 }
+		 }
+
+		 if (nCount > nImgHeight/2 &&  abs(nCount - nImgHeight) <= 8)
+			 nWhilteWidth++;
+		 else
+			 nWhilteWidth = 0;
+
+		 if (nWhilteWidth >= 5)
+		 {
+			 bFindWhite[0] = TRUE;
+			 break;
+		 }
+	 }
+
+	 nWhilteWidth = 0;
+	 for (int i=nImgWidth/2 +1; i<nImgWidth; i++)
+	 {
+		 int nCount = 0;
+		 for (int j=0; j<nImgHeight; j++)
+		 {
+			 if (GETGRAYVALUE2(cropImg, i, j) > nThreshold)
+			 {
+				 nCount++;
+			 }
+		 }
+
+		 if (nCount > nImgHeight/2 &&  abs(nCount - nImgHeight) <= 8)
+			 nWhilteWidth++;
+		 else
+			 nWhilteWidth = 0;
+
+		 if (nWhilteWidth >= 5)
+		 {
+			 bFindWhite[1] = TRUE;
+			 break;
+		 }
+	 }
+
+	 for (int i=0; i<2; i++)
+	 {
+		 if (!bFindWhite[i])
+		 {
+			 return FALSE;
+		 }
+	 }
+
+	 srcRect.nFilling = 0; // 未填涂
+	 return TRUE;
+ }
+
+ //合并图像
+ bool MergeNewImage(CxImage img1,  CxImage img2, CString strNewImg)
+ {
+	 img1.GrayScale();
+	 img2.GrayScale();
+	 DWORD dFileType = GetFileType1(strNewImg);
+
+	 BYTE *ps = (BYTE *)img1.info.pImage;
+	 int ByteCount1 = BYTESPERLINE(img1.GetWidth(), img1.GetBpp());
+	 BYTE *pd = (BYTE *)img2.info.pImage;
+	 int ByteCount2 = BYTESPERLINE(img2.GetWidth(), img2.GetBpp());
+	 int nW = img2.GetWidth();
+	 int nH = img2.GetHeight();
+	 int nWW = img1.GetWidth();
+	 int nHH = img1.GetHeight();
+	 int newW = max(nW, nWW);
+	 int newH = nH + nHH;
+
+	 CxImage pXimg;
+	 pXimg.Create(newW, newH, img1.GetBpp(), dFileType);
+	 pXimg.SetPalette(img1.GetPalette(), 256); //设置调色板   2016.01.28
+	 RGBQUAD *rgb = pXimg.GetPalette();
+	 int newBC = BYTESPERLINE(pXimg.GetWidth(), img1.GetBpp());
+	 BYTE *pImage = (BYTE *)pXimg.info.pImage;
+	 int nBpp =  pXimg.GetBpp();
+	 memset(pImage, 255, newBC*newH);
+	 int i;
+	 for (i=0; i<nH; i++)
+	 {
+		 memcpy(pImage+i*newBC, pd+i*ByteCount2, ByteCount2);
+	 }
+
+	 for (i=0; i<nHH; i++)
+	 {
+		 memcpy(pImage+(nH +i)*newBC, ps+i*ByteCount1, ByteCount1);
+	 }
+
+	 bool bRes = pXimg.Save(strNewImg, dFileType);
+	 return bRes;
+ }
+
+ void sort(vector<RECTARRAY> &v_dstArrays)
+ {
+	 int nSize = v_dstArrays.size();
+	 for (int i=0; i<nSize; i++)
+	 {
+		 vector<RECTARRAY>::iterator it1 = v_dstArrays.begin()+i;
+		 RECTARRAY rArray1 = *it1;
+		for (int j=i+1; j<nSize; j++)
+		{
+			vector<RECTARRAY>::iterator it2  = v_dstArrays.begin()+j;
+			RECTARRAY rArray2 = *it2;
+			if (rArray1.nQuestionNo > rArray2.nQuestionNo)
+			{
+				*it1 = rArray2;
+			    *it2 = rArray1;
+
+				rArray1 = *it1;
+				rArray2 = *it2;
+			}
+			else if (rArray1.nQuestionNo == rArray2.nQuestionNo)
+			{
+				if (rArray1.nAnswerIndex > rArray2.nAnswerIndex)
+				{
+					*it1 = rArray2;
+					*it2 = rArray1;
+
+					rArray1 = *it1;
+					rArray2 = *it2;
+				}
+			}
+		}
+	 }
+ }
+
+
+bool GetRectArry(vector<RECTARRAY> &v_DstRectArray, vector<CRect> v_allRects, vector<RECTARRAY> v_modelRects) //获取排序后的对应矩形阵列
+{
+	if (v_modelRects.size() <= 0)
+		return FALSE;
+
+	CSize dstSize;
+	dstSize.SetSize(v_modelRects[0].rect.GetWidth(), v_modelRects[0].rect.GetHeight());
+	
+	//将其按照每列排序
+	vector<RECTARRAY> v_dstRectArrayTmps;
+	int  nMaxLen = (int)sqrt(pow(double(dstSize.cx)/2.0, 2) + pow(double(dstSize.cy)/2.0, 2));
+	int nMinLen = (dstSize.cx + dstSize.cy)/2;
+	int nMaxLen1 = max(nEPS, 5); 
+	
+	for (vector<CRect>::iterator it1 = v_allRects.begin(); it1 != v_allRects.end(); it1++)
+	{
+		CRect rectTmp1 = *it1;
+		for (int j=0; j<v_modelRects.size(); j++)
+		{
+			RECTARRAY rectModelArray = v_modelRects[j];
+			CPoint pCenter1 = rectTmp1.CenterPoint();
+			CPoint pCenter2 = CPoint(rectModelArray.CenterNewPoint().nX, rectModelArray.CenterNewPoint().nY);
+			
+			if ((int)CImageProcess::GetLength(pCenter1, pCenter2) <= nMaxLen1)
+			{
+				RECTARRAY rectArrayTmp;
+				CPoint p1 = rectTmp1.TopLeft();
+				CPoint p2 = rectTmp1.BottomRight();
+				NEWPOINT pTopLeft;
+				NEWPOINT pBottomRight;
+				pTopLeft.setPoint(p1.x, p1.y);
+				pBottomRight.setPoint(p2.x, p2.y);
+
+				rectArrayTmp.nType = rectModelArray.nType;
+				rectArrayTmp.rect.SetRect(pTopLeft, pBottomRight);
+				rectArrayTmp.nQuestionNo = rectModelArray.nQuestionNo;
+				strcpy(rectArrayTmp.cTitle, rectModelArray.cTitle);
+				rectArrayTmp.nZuID = rectModelArray.nZuID;
+				rectArrayTmp.nAnswerIndex = rectModelArray.nAnswerIndex;
+				rectArrayTmp.nSelType  = rectModelArray.nSelType;
+				v_dstRectArrayTmps.push_back(rectArrayTmp);
+				//TRACE("%d, %d, %d, %d\n",rectArrayTmp.nQuestionNo, rectArrayTmp.nAnswerIndex, rectArrayTmp.rect.pTopLeft.nX,  rectArrayTmp.rect.pTopLeft.nY);
+				break;
+			}
+		}
+	}
+
+	if (v_dstRectArrayTmps.size() <= 0 )
+	{
+		for (vector<CRect>::iterator it1 = v_allRects.begin(); it1 != v_allRects.end(); it1++)
+		{
+			CRect rectTmp1 = *it1;
+			int nCrossCount = 0;
+			int k = 0;
+			for (int j=0; j<v_modelRects.size(); j++)
+			{
+				RECTARRAY rectModelArray = v_modelRects[j];
+				CRect rect2 = NewRect2Rect(rectModelArray.rect);
+				//CPoint pCenter1 = rectTmp1.CenterPoint();
+				//CPoint pCenter2 = CPoint(rectModelArray.CenterNewPoint().nX, rectModelArray.CenterNewPoint().nY);
+				CImageProcess imgProcessTmp;
+				int nCurCross = imgProcessTmp.GetCrossPointsCount(rectTmp1, rect2);
+
+				if (nCurCross > nCrossCount)
+				{
+					nCrossCount = nCurCross;
+					k = j;
+				}				
+			}
+
+			if (nCrossCount != 0)
+			{
+				RECTARRAY rectModelArray = v_modelRects[k];
+				RECTARRAY rectArrayTmp;
+				CPoint p1 = rectTmp1.TopLeft();
+				CPoint p2 = rectTmp1.BottomRight();
+				NEWPOINT pTopLeft;
+				NEWPOINT pBottomRight;
+				pTopLeft.setPoint(p1.x, p1.y);
+				pBottomRight.setPoint(p2.x, p2.y);
+
+				rectArrayTmp.nType = rectModelArray.nType;
+				rectArrayTmp.rect.SetRect(pTopLeft, pBottomRight);
+				rectArrayTmp.nQuestionNo = rectModelArray.nQuestionNo;
+				rectArrayTmp.nAnswerIndex = rectModelArray.nAnswerIndex;
+				rectArrayTmp.nSelType  = rectModelArray.nSelType;
+				strcpy(rectArrayTmp.cTitle, rectModelArray.cTitle);
+				rectArrayTmp.nZuID = rectModelArray.nZuID;
+				v_dstRectArrayTmps.push_back(rectArrayTmp);
+				//TRACE("%d, %d, %d, %d\n",rectArrayTmp.nQuestionNo, rectArrayTmp.nAnswerIndex, rectArrayTmp.rect.pTopLeft.nX,  rectArrayTmp.rect.pTopLeft.nY);
+				break;
+			}
+		}
+		//return FALSE;
+	}
+	
+	if (v_dstRectArrayTmps.size() <= 0)
+	{
+		//既不在指定范围内，也无与模板所在矩形相交 pany 2016.06.17
+		for (vector<CRect>::iterator it1 = v_allRects.begin(); it1 != v_allRects.end(); it1++)
+		{
+			CRect rectTmp1 = *it1;
+			int nMinLen = 8000;
+			for (int j=0; j<v_modelRects.size(); j++)
+			{
+				RECTARRAY rectModelArray = v_modelRects[j];
+				CPoint pCenter1 = rectTmp1.CenterPoint();
+				CPoint pCenter2 = CPoint(rectModelArray.CenterNewPoint().nX, rectModelArray.CenterNewPoint().nY);
+				int nLen = (int)CImageProcess::GetLength(pCenter1, pCenter2);
+
+				if (nLen < nMinLen)
+				{
+					nMinLen = nLen;
+					RECTARRAY rectArrayTmp;
+					CPoint p1 = rectTmp1.TopLeft();
+					CPoint p2 = rectTmp1.BottomRight();
+					NEWPOINT pTopLeft;
+					NEWPOINT pBottomRight;
+					pTopLeft.setPoint(p1.x, p1.y);
+					pBottomRight.setPoint(p2.x, p2.y);
+
+					rectArrayTmp.nType = rectModelArray.nType;
+					rectArrayTmp.rect.SetRect(pTopLeft, pBottomRight);
+					rectArrayTmp.nQuestionNo = rectModelArray.nQuestionNo;
+					strcpy(rectArrayTmp.cTitle, rectModelArray.cTitle);
+					rectArrayTmp.nZuID = rectModelArray.nZuID;
+					rectArrayTmp.nAnswerIndex = rectModelArray.nAnswerIndex;
+					rectArrayTmp.nSelType  = rectModelArray.nSelType;
+					v_dstRectArrayTmps.push_back(rectArrayTmp);
+					//TRACE("%d, %d, %d, %d\n",rectArrayTmp.nQuestionNo, rectArrayTmp.nAnswerIndex, rectArrayTmp.rect.pTopLeft.nX,  rectArrayTmp.rect.pTopLeft.nY);
+					//break;
+				}
+			}
+		}
+	}
+	
+	if (v_dstRectArrayTmps.size() <= 0 )
+		return false;
+
+	//排序 按题号从小到大 按备选答案序号从小到大
+	sort(v_dstRectArrayTmps);
+	
+	//判断是否有漏缺
+	for (int i=0; i<v_modelRects.size(); i++)
+	{
+		bool bFind = FALSE;
+		int nInsert = 0;
+		RECTARRAY rArrayTmp1 = v_modelRects[i];
+		
+		int nIndex = 0;
+		for (int j=0; j<v_dstRectArrayTmps.size(); j++)
+		{
+			RECTARRAY rArrayTmp2 = v_dstRectArrayTmps[j];
+			if (rArrayTmp1.nQuestionNo == rArrayTmp2.nQuestionNo)
+			{
+				if (rArrayTmp1.nAnswerIndex == rArrayTmp2.nAnswerIndex)
+				{
+					bFind = TRUE;
+					break;
+				}
+				else if (rArrayTmp1.nAnswerIndex < rArrayTmp2.nAnswerIndex)
+				{
+					nIndex = j;
+					nInsert = j;
+					break;
+				}
+				nIndex = j;
+			}
+			else if (rArrayTmp1.nQuestionNo < rArrayTmp2.nQuestionNo)
+			{
+				nIndex = j;
+				nInsert = j;
+				if (nInsert < 0)
+					nInsert = 0;
+				break;
+			}
+
+			nIndex = j;
+			nInsert = j+1;
+		}
+ 
+		if (!bFind)
+		{
+			//获取临近位置处
+			RECTARRAY dstModelRArray;
+			RECTARRAY dstRArrayTmp;
+			GetModelRectArray(v_dstRectArrayTmps[nIndex], v_modelRects, dstModelRArray);
+			
+			NEWPOINT p1;
+			p1.setPoint(-dstModelRArray.CenterNewPoint().nX + rArrayTmp1.CenterNewPoint().nX,
+				-dstModelRArray.CenterNewPoint().nY + rArrayTmp1.CenterNewPoint().nY);
+
+			dstRArrayTmp = rArrayTmp1;
+			dstRArrayTmp.rect = v_dstRectArrayTmps[nIndex].rect;
+			dstRArrayTmp.AddPoint(p1);
+			v_dstRectArrayTmps.insert(v_dstRectArrayTmps.begin()+nInsert, dstRArrayTmp);
+		} 
+	}
+
+	//判断是否有重复 2016.01.06
+	for (int i=0; i<v_dstRectArrayTmps.size(); i++)
+	{
+		for (int j=i+1; j<v_dstRectArrayTmps.size(); j++)
+		{
+			if (v_dstRectArrayTmps[i].nQuestionNo == v_dstRectArrayTmps[j].nQuestionNo)
+			{
+				if (v_dstRectArrayTmps[i].nAnswerIndex == v_dstRectArrayTmps[j].nAnswerIndex)
+				{
+					v_dstRectArrayTmps.erase(v_dstRectArrayTmps.begin()+j);
+					j-=1;
+					//break;
+				}
+			}
+		}
+	}
+
+	v_DstRectArray = v_dstRectArrayTmps;
+
+	return TRUE;
+}
+
+bool GetRectArry_1(vector<RECTARRAY> &v_DstRectArray, vector<RECTARRAY> v_curRectArray,vector<RECTARRAY> v_modelRects,  CxImage *srcImg, int nThreshold)
+{
+	if (v_curRectArray.size() == v_modelRects.size())
+	{
+		v_DstRectArray = v_curRectArray;
+		return TRUE;
+	}
+
+	if (v_curRectArray.size() == 0)
+		return FALSE;
+
+	vector<int> v_allNoFind;
+	RECTARRAY rectModelStart;
+	RECTARRAY rectCurStart;
+	bool bStart = false;
+	v_DstRectArray = v_curRectArray;
+	for (int i=0; i<v_modelRects.size(); i++)
+	{
+		bool bFind = false;
+		for (int j=0; j<v_curRectArray.size(); j++)
+		{
+			if (v_modelRects[i].nQuestionNo == v_curRectArray[j].nQuestionNo &&
+				v_modelRects[i].nAnswerIndex == v_curRectArray[j].nAnswerIndex)
+			{
+				if (!bStart)
+				{
+					bStart = TRUE;
+					rectModelStart = v_modelRects[i];
+					rectCurStart = v_curRectArray[j];
+				}
+
+				bFind = TRUE;
+			}
+		}
+
+		if (!bFind)
+		{
+			v_allNoFind.push_back(i);
+		}
+	}
+
+	if (!bStart)
+		return FALSE;
+
+	for (int i=0; i<v_allNoFind.size(); i++)
+	{
+		int nIndex = v_allNoFind[i];
+		int nMoveX = v_modelRects[nIndex].rect.CenterNewPoint().nX - rectModelStart.CenterNewPoint().nX;
+		int nMoveY = v_modelRects[nIndex].rect.CenterNewPoint().nY - rectModelStart.CenterNewPoint().nY;
+
+		RECTARRAY rectArrayTmp = v_modelRects[nIndex];
+		rectArrayTmp.rect = rectCurStart.rect;
+		
+		NEWPOINT p1;
+		p1.setPoint(nMoveX, nMoveY);
+		rectArrayTmp.AddPoint(p1);
+		int nAver =0;
+		rectArrayTmp.dDensity = GetGrayDensity(rectArrayTmp.rect, nThreshold, srcImg,  nAver);
+		rectArrayTmp.nAverGrayValue = nAver;
+		ZYJ_IsUnFilling(rectArrayTmp, nThreshold, srcImg);//判断是否为无
+
+		v_DstRectArray.push_back(rectArrayTmp);
+	}
+
+	if (v_DstRectArray.size() != v_modelRects.size())
+		return false;
+
+	//排序
+	sort(v_DstRectArray);
+
+	return TRUE;
+}
+
+NEWRECT GetRectArea(const RECTARRAY *v_modelrArray, int nOmrSize, CxImage *srcImg)
+{
+	 NEWRECT rectArea;
+	 RECTARRAY rArray1 = v_modelrArray[0];
+	 int nTop    = rArray1.rect.pTopLeft.nY;
+	 int nBottom = rArray1.rect.pBottomRight.nY; 
+	 int nLeft   = rArray1.rect.pTopLeft.nX;
+	 int nRight  = rArray1.rect.pBottomRight.nX;
+	
+	 for (int i=0; i<nOmrSize; i++)
+	 {
+		 NEWRECT rect1 = v_modelrArray[i].rect;
+		 int nY1 = rect1.pTopLeft.nY;
+		 int nY2 = rect1.pBottomRight.nY;
+		 int nX1 = rect1.pTopLeft.nX;
+		 int nX2 = rect1.pBottomRight.nX;
+		 if (nTop > nY1)
+			 nTop = nY1;
+
+		 if (nBottom < nY2)
+			 nBottom = nY2;
+
+		 if (nLeft > nX1)
+			 nLeft = nX1;
+
+		 if (nRight < nX2)
+			 nRight = nX2;
+	 }
+
+	 //扩大区域
+	 nTop -= 20;
+	 nBottom += 20;
+	 nLeft -= 20;
+	 nRight += 20;
+
+	 int nImgWidth = srcImg->GetWidth();
+	 int nImgHeight = srcImg->GetHeight();
+
+	 if (nTop < 0)
+		 nTop = 0;
+
+	 if (nLeft < 0)
+		 nLeft = 0;
+
+	 if (nBottom > nImgHeight-1)
+		 nBottom = nImgHeight-1;
+
+	 if (nRight > nImgWidth-1)
+		 nRight = nImgWidth-1;
+
+	 rectArea.SetRect(nLeft, nTop, nRight-nLeft+1, nBottom-nTop+1);
+	 return rectArea;
+
+}
+
+NEWRECT GetRectArea1(NEWRECT rect1, CxImage *srcImg)
+{
+	NEWRECT rectArea;
+	int nTop = rect1.pTopLeft.nY;
+	int nBottom = rect1.pBottomRight.nY;
+	int nLeft = rect1.pTopLeft.nX;
+	int nRight = rect1.pBottomRight.nX;
+
+	nTop -= 100;
+	nBottom += 100;
+	nLeft -= 150;
+	nRight += 150;
+
+	int nImgWidth = srcImg->GetWidth();
+	int nImgHeight = srcImg->GetHeight();
+
+	if (nTop < 0)
+		nTop = 0;
+
+	if (nBottom > nImgHeight-1)
+		nBottom = nImgHeight-1;
+
+	if (nLeft < 0)
+		nLeft = 0;
+
+	if (nRight > nImgWidth-1)
+		nRight = nImgWidth-1;
+
+	rectArea.SetRect(nLeft, nTop, nRight-nLeft+1, nBottom-nTop+1);
+	return rectArea;
+}
+
+
+ BOOL ZYJ_GetRectArray(int nOmrType, vector<RECTARRAY> &dstArray, int nRecType, int nZuID, CxImage *srcImg,  CurImage *imgPara)
+{
+	int nModelSize = 0;
+	CImageProcess imgProcess;
+	vector<RECTARRAY> v_CurZuRectArray;
+
+	if (nRecType == 0) //客观题
+	{
+		for (int i=0; i<imgPara->v_modelRectArrays.size(); i++)
+		{
+			if (imgPara->v_modelRectArrays[i].nZuID == nZuID)
+			{
+				nModelSize++;
+				v_CurZuRectArray.push_back(imgPara->v_modelRectArrays[i]);
+			}
+		}
+	}
+	else if (nRecType == 1) //考号
+	{
+		for (int i=0; i<imgPara->v_modelKhRectArray.size(); i++)
+		{
+			if (imgPara->v_modelKhRectArray[i].nZuID == nZuID)
+			{
+				nModelSize++;
+				v_CurZuRectArray.push_back(imgPara->v_modelKhRectArray[i]);
+			}
+		}
+	}
+	
+	// = g_imgProcess->v_modelRectArrays.size();
+	if (nModelSize <= 0)
+		return FALSE;
+
+	 RECTARRAY *modelArray = new RECTARRAY[nModelSize];  
+     for (int i=0; i<nModelSize; i++)
+	 {
+		modelArray[i] = v_CurZuRectArray[i];
+	 }
+
+	NEWRECT rectArea = GetRectArea(modelArray, nModelSize, srcImg); //当前所有客观题所在区域
+	int nThreshold = imgPara->m_nThreshold;
+	int nOMRType = nOmrType;
+	/*vector<RECTARRAY> v_modelArray;*/
+	CxImage *srcImage = srcImg; 
+	if (!srcImage)
+	{
+		delete []modelArray;
+		modelArray = NULL;
+		return FALSE;
+	}
+
+	CxImage img;
+	RECT rect;
+	rect.top    = rectArea.pTopLeft.nY;
+	rect.bottom = rectArea.pBottomRight.nY;
+	rect.left   = rectArea.pTopLeft.nX;
+	rect.right  = rectArea.pBottomRight.nX;
+	if (!srcImage->Crop(rect, &img)) //获取目标区域图像 2016.01.06
+	{
+		delete []modelArray;
+		modelArray = NULL;
+		return FALSE;
+	}
+	CSize dstSize;
+	int nTotalX = 0;
+	int nTotalY = 0;
+	
+	for (int i=0; i<nModelSize; i++)
+	{
+		RECTARRAY rArrayTmp = modelArray[i];
+		nTotalX += rArrayTmp.rect.GetWidth();
+		nTotalY += rArrayTmp.rect.GetHeight();
+		//v_modelArray.push_back(modelArray[i]);
+	}
+	
+	dstSize.cx = nTotalX/nModelSize;
+	dstSize.cy = nTotalY/nModelSize;
+	
+	//判断填涂类型 
+	//int nTime1 = GetTickCount();
+	vector<CRect> v_curRect; //当前待识别
+	vector<CRect> v_curRect1;
+	if (nOMRType == 0) //中括号
+	{
+		bool bRes = FALSE;
+		bool bRes1 = FALSE;
+		bRes = imgProcess.GetValidRect(0, &img, v_curRect, nThreshold, dstSize);
+		if (v_curRect.size() < min(nModelSize/2, 5) && v_curRect.size() >= 0)
+		{
+			bRes1 = imgProcess.GetEnclosedRects(0, &img, v_curRect1, nThreshold, dstSize); 
+		}
+		
+		if (v_curRect1.size() > v_curRect.size())
+			v_curRect = v_curRect1;
+
+		if (!bRes && !bRes1)
+		{
+			delete []modelArray;
+			modelArray = NULL;
+			return FALSE;
+		}
+		//DebugString("获取区域内矩形耗时%d\n", GetTickCount()-time1);
+	}
+	else if (nOMRType == 1) //封闭矩形
+	{
+		bool bRes = FALSE; 
+		bRes = imgProcess.GetEnclosedRects(0, &img, v_curRect, nThreshold, dstSize);
+		
+		if (!bRes)
+		{
+			delete []modelArray;
+			modelArray = NULL;
+			return FALSE;
+		}
+	}
+
+	//TRACE("耗时:%d\n", GetTickCount() -nTime1);
+	vector<RECTARRAY> v_DstRectArray;
+	vector<RECTARRAY> v_ModelArrayTmp = v_CurZuRectArray;//v_modelArray;
+	NEWPOINT p1;
+	p1.setPoint(-rectArea.pTopLeft.nX, -rectArea.pTopLeft.nY);
+
+	NEWPOINT pLocalModel[3]; //模板定位点
+	NEWPOINT pCurLocal[3]; //当前图像定位点
+	for (int i=0; i<3; i++)
+	{
+		pLocalModel[i] = imgPara->v_rectModelLocal[i].CenterNewPoint();
+		pCurLocal[i] = imgPara->m_rectLocal[i].CenterNewPoint(); 
+	}
+
+	for (int i=0; i<v_ModelArrayTmp.size(); i++)
+	{
+		double dHRatio, dVRatio;
+		NEWPOINT pNewCenter1;
+		NEWPOINT pAdd;
+		NEWPOINT pModelCenter = v_ModelArrayTmp[i].CenterNewPoint();
+		imgProcess.GetRatio(pLocalModel, v_ModelArrayTmp[i].CenterNewPoint(), dHRatio, dVRatio);
+
+		imgProcess.GetNewPoint(pCurLocal, dHRatio, dVRatio, pNewCenter1);
+		pAdd.setPoint(pNewCenter1.nX - pModelCenter.nX, pNewCenter1.nY - pModelCenter.nY);
+		v_ModelArrayTmp[i].AddPoint(pAdd);	
+		v_ModelArrayTmp[i].AddPoint(p1);	
+	}
+
+	if (!GetRectArry(v_DstRectArray, v_curRect, v_ModelArrayTmp))
+	{
+		delete []modelArray;
+		modelArray = NULL;
+		return FALSE;
+	}
+
+	if (v_DstRectArray.size() != nModelSize)
+	{
+		delete []modelArray;
+		modelArray = NULL;
+		return FALSE;
+	}
+	
+    dstArray = v_DstRectArray;
+
+	//计算除填涂区外其他区域的白点平均灰度值 
+	CRect rectAreaTmp1;
+	int nWhiteAverValue = 255;
+	if (v_DstRectArray.size() > 1)
+	{
+		CRect rect1 = NewRect2Rect(v_DstRectArray[0].rect);
+		CRect rect2 = NewRect2Rect(v_DstRectArray[v_DstRectArray.size()-1].rect);
+		rectAreaTmp1.SetRect(rect1.TopLeft(), rect2.BottomRight());
+		CxImage cropImg1;
+		srcImage->Crop(rectAreaTmp1, &cropImg1);
+		
+		int nTotalWhiteGray = 0;
+		int nCoutWhite = 0;
+		for (int i=0; i<cropImg1.GetWidth(); i++)
+		{
+			for (int j=0; j<cropImg1.GetHeight(); j++)
+			{
+				int nGrayValue = GETGRAYVALUE2(cropImg1, i, j);
+				if (nGrayValue <= imgPara->m_nThreshold)
+					continue;
+
+				CPoint p1;
+				p1.SetPoint(rectAreaTmp1.TopLeft().x + i, rectAreaTmp1.TopLeft().y + j);
+				bool bFind = false;
+				for (int k =0 ; k<v_DstRectArray.size(); k++)
+				{
+					if (imgProcess.IsPointInRect(p1, NewRect2Rect(v_DstRectArray[k].rect)))
+					{
+						bFind = true;
+						break;
+					}
+				}
+
+				if (bFind)
+					continue;
+				
+				nTotalWhiteGray += nGrayValue;
+				nCoutWhite++;
+			}
+		}
+
+		if (nCoutWhite > 0)
+		{
+			nWhiteAverValue = nTotalWhiteGray/nCoutWhite;
+		}
+	}
+
+	for (int k=0; k<v_DstRectArray.size(); k++)
+	{
+		v_DstRectArray[k].nWhiteGray = nWhiteAverValue;
+		NEWRECT dstRect1 = v_DstRectArray[k].rect;
+		dstArray[k] = v_DstRectArray[k];
+		dstArray[k].rect.AddPoint(rectArea.pTopLeft);
+		dstRect1.AddPoint(rectArea.pTopLeft);
+
+	    ZYJ_IsUnFilling(dstArray[k], imgPara->m_nThreshold, srcImg);//判断是否为无填涂
+		dstArray[k].dDensity = GetGrayDensity(dstRect1, imgPara->m_nThreshold, srcImg, dstArray[k].nAverGrayValue);
+		
+		CxImage *cropImg = new CxImage();
+		srcImg->Crop(NewRect2Rect(dstRect1), cropImg);
+		if (dstRect1.GetWidth() >= 5 &&  dstRect1.GetHeight() >= 5)
+		{
+			dstArray[k].dHollowDensity = imgProcess.GetHollowDensity(cropImg,
+				                                       nThreshold, 
+													   CSize(max(5, dstRect1.GetWidth()/2), max(5, dstRect1.GetHeight()/2)));
+		}
+
+		delete cropImg;
+		cropImg = NULL;
+	}
+
+	delete []modelArray;
+	modelArray = NULL;
+	return TRUE;
+}
+
+CRect &NewRect2Rect(NEWRECT newRect)
+{
+	CRect rect;
+	rect.top = newRect.pTopLeft.nY;
+	rect.bottom = newRect.pBottomRight.nY;
+	rect.left = newRect.pTopLeft.nX;
+	rect.right = newRect.pBottomRight.nX;
+	return rect;
+}
+
+NEWRECT &Rect2NewRect(CRect rect)
+{
+   NEWPOINT p1, p2;
+   p1.setPoint(rect.left, rect.top);
+   p2.setPoint(rect.right, rect.bottom);
+   NEWRECT dstRect;
+   dstRect.SetRect(p1, p2);
+   return dstRect;
+}
+
+
+double GetGrayDensity(NEWRECT rectArea, int nThrshold, CxImage *srcImg, int &nAverValue)
+{
+	double dDensity = 0.0;
+	int nTolalGray = 0;
+	CRect rect = NewRect2Rect(rectArea);
+	CxImage cropImg;
+	srcImg->Crop(rect, &cropImg);
+	int nImgWidth = cropImg.GetWidth();
+	int nImgHeight = cropImg.GetHeight();
+	
+	int nCount =0;
+	for (int i=0; i<nImgWidth; i++)
+	{
+		for (int j=0; j<nImgHeight; j++)
+		{
+			int nGrayValue = GETGRAYVALUE2(cropImg, i, j);
+			if (nGrayValue <= nThrshold)
+			{
+				nCount++;
+			}
+
+			nTolalGray += nGrayValue;
+		}
+	}
+	
+	if (nImgHeight*nImgWidth > 0)
+	{
+		dDensity = double(nCount) / double(nImgWidth*nImgHeight);
+		nAverValue = nTolalGray/(nImgWidth*nImgHeight);
+	}
+
+	return dDensity;
+}
+
+
+bool ZYJ_GetRectLocalPoint(NEWRECT rectArea,int nModelRectWidth, int nModelRectHeight, int nIndex, int nRectType, NEWRECT &dstRect, CxImage *srcImg, CurImage *ImgPara)
+{
+	CxImage cropImg;
+	CImageProcess imgProcess;
+	CRect rectArea1 = NewRect2Rect(rectArea);
+	int nThreshold = ImgPara->m_nThreshold;
+	CSize dstSize = CSize(nModelRectWidth, nModelRectHeight);
+	srcImg->Crop(rectArea1, &cropImg);
+	
+	CRect dstRectArea;
+	dstRectArea.SetRect(0, 0, rectArea1.Width()-1, rectArea1.Height()-1); //新的目标定位点所在矩形
+	int nWidth  = cropImg.GetWidth();
+	int nHeight = cropImg.GetHeight();
+
+	if (nRectType == 2) //定位点矩形类型
+	{
+		for (int i=0; i<nHeight; i++)
+		{
+			for (int j=0; j<nWidth; j++)
+			{
+				if (GETGRAYVALUE2(cropImg, j, i) <= nThreshold)
+				{	
+					CPoint pStart = CPoint(j, i);
+					CRect dstRectTmp;					
+					if (imgProcess.GetRectFromPoint(dstRectTmp, pStart, dstRectArea, dstSize, &cropImg, nThreshold))
+					{
+
+						CRect rectTmp1;
+						rectTmp1.SetRect(dstRectTmp.left- dstRectTmp.Width()/2, dstRectTmp.top - dstRectTmp.Height()/2,
+							dstRectTmp.right + dstRectTmp.Width()/2, dstRectTmp.bottom+ dstRectTmp.Height()/2);
+
+						CPoint p1 = rectTmp1.TopLeft();
+						CPoint p2 = rectTmp1.BottomRight();
+
+						if (rectTmp1.left < 0)
+							p1.x = 0;
+
+						if (rectTmp1.right > nWidth-1)
+							p2.x = nWidth-1;
+
+						if (rectTmp1.top < 0)
+							p1.y = 0;
+
+						if (rectTmp1.bottom > nHeight-1)
+							p2.y = nHeight-1;
+
+						CRect dstRectTmp1;
+						dstRectTmp1.SetRect(p1, p2);
+
+						int nCount1 = 0;
+						int nCount2 = 0;
+						imgProcess.GetBlackCount(&cropImg, dstRectTmp1, ImgPara->m_nThreshold,  nCount1);
+						imgProcess.GetBlackCount(&cropImg, dstRectTmp, ImgPara->m_nThreshold,  nCount2);
+
+						if (double(nCount1 - nCount2) / double(max(dstRectTmp.Width()*dstRectTmp.Height(), 1)) >= 0.25)
+							continue;
+
+						dstRect = Rect2NewRect(dstRectTmp);
+						dstRect.AddPoint(rectArea.pTopLeft);
+						ImgPara->m_rectLocal[nIndex] = dstRect;
+						return TRUE;
+					}
+				}
+				else
+					j += max(nModelRectWidth/2, 1);
+			}
+
+			i += max(nModelRectHeight/2, 1);
+		}
+
+
+		for (int i=0; i<nHeight; i++)
+		{
+			for (int j=0; j<nWidth; j++)
+			{
+				if (GETGRAYVALUE2(cropImg, j, i) <= nThreshold)
+				{	
+					CPoint pStart = CPoint(j, i);
+					CRect dstRectTmp;		
+
+					vector<CPoint> v_AllPoints;
+					int nCount = 0;
+					if (imgProcess.GetAllPoint(&cropImg, v_AllPoints, pStart, nThreshold, nCount))
+					{
+						
+						CRect dstRectTmp;	
+						bool bRes1 = imgProcess.GetRect(v_AllPoints, dstRectTmp);
+						if (bRes1)
+						{
+							if (dstRectTmp.Width() > dstSize.cx/2 && dstRectTmp.Height() > dstSize.cy /2)
+							{
+								if (abs(dstRectTmp.Width() - dstSize.cx) <= nEPS &&
+									abs(dstRectTmp.Height() - dstSize.cy) <= nEPS)
+								{
+
+									//判断矩形有效性
+									CRect rectTmp1;
+									rectTmp1.SetRect(dstRectTmp.left- dstRectTmp.Width()/2, dstRectTmp.top - dstRectTmp.Height()/2,
+										dstRectTmp.right + dstRectTmp.Width()/2, dstRectTmp.bottom+ dstRectTmp.Height()/2);
+
+									CPoint p1 = rectTmp1.TopLeft();
+									CPoint p2 = rectTmp1.BottomRight();
+
+									if (rectTmp1.left < 0)
+										p1.x = 0;
+
+									if (rectTmp1.right > nWidth-1)
+										p2.x = nWidth-1;
+
+									if (rectTmp1.top < 0)
+										p1.y = 0;
+
+									if (rectTmp1.bottom > nHeight-1)
+										p2.y = nHeight-1;
+
+									CRect dstRectTmp1;
+									dstRectTmp1.SetRect(p1, p2);
+
+									int nCount1 = 0;
+									int nCount2 = 0;
+									imgProcess.GetBlackCount(&cropImg, dstRectTmp1, ImgPara->m_nThreshold,  nCount1);
+									imgProcess.GetBlackCount(&cropImg, dstRectTmp, ImgPara->m_nThreshold,  nCount2);
+
+									if (double(nCount1 - nCount2) / double(max(dstRectTmp.Width()*dstRectTmp.Height(), 1)) >= 0.25)
+										continue;
+
+									dstRect = Rect2NewRect(dstRectTmp);
+									dstRect.AddPoint(rectArea.pTopLeft);
+									ImgPara->m_rectLocal[nIndex] = dstRect;
+									return TRUE;
+								}
+							}
+						}
+
+						
+					}
+				}
+				else
+					j += max(nModelRectWidth/2, 1);
+			}
+
+			i += max(nModelRectHeight/2, 1);
+		}
+
+	}
+	else if (nRectType == 1) //定位点三角形类型
+	{
+		for (int j=0; j<nWidth; j++)
+		{
+			for (int i=0; i<nHeight; i++)
+			{
+				if (GETGRAYVALUE2(cropImg, j, i) <= nThreshold)
+				{	
+					CPoint pStart = CPoint(j, i);
+					CRect dstRectTmp;										
+					NEWTRIANGLE dstNewTriangle;
+					if (imgProcess.GetTriAngleLocalPoint(&cropImg, dstSize, nThreshold, dstNewTriangle))
+					{
+						dstRect = dstNewTriangle.GetNewRect();
+						dstRect.AddPoint(rectArea.pTopLeft);
+						ImgPara->m_rectLocal[nIndex] = dstRect;
+						return TRUE;
+					}
+				}
+				else
+					i += max(nModelRectHeight/2, 1);
+			}
+			j += max(nModelRectWidth/2, 1);
+		}
+	}
+
+	
+
+	return FALSE;
+}
+
+
+bool ZYJ_GetOmrResult(vector<RECTARRAY> &srcRects, int nSize, int nSelCheck,  vector<RECTARRAY> modelRectArry, int &nFillAverGray)
+{
+	//按备选答案序号索引排序计算未填涂部分平均密度
+	map<int, double> mapDensity;
+	map<int, double> mapModelDensity;
+	for (int i=0; i<26; i++)
+	{
+		bool bFind = FALSE;
+		double dTotal = 0.0;
+		int nNum = 0;
+		for (int j=0; j<nSize; j++)
+		{
+			if (srcRects[j].nAnswerIndex == i)
+			{
+				bFind = TRUE;
+				
+				if (srcRects[j].nFilling == 0)//未填涂
+				{
+					dTotal += srcRects[j].dDensity;
+					nNum++;
+				}
+			}
+		}
+
+		if (!bFind) //未找到
+			break;
+
+		double dAverDensity = 0.0;		
+		if (nNum > 0)
+			dAverDensity = dTotal/double(nNum);//平均密度
+		
+		mapDensity.insert(pair<int, double>(i, dAverDensity));
+	}
+
+	for (int i=0; i<26; i++)
+	{
+		bool bFind = FALSE;
+		double dTotal = 0.0;
+		int nNum = 0;
+		for (int j=0; j<modelRectArry.size(); j++)
+		{
+			if (modelRectArry[j].nAnswerIndex == i)
+			{
+				bFind = TRUE;
+				modelRectArry[j].nFilling = 0;
+				dTotal += modelRectArry[j].dDensity;
+				nNum++;
+				
+			}
+		}
+
+		if (!bFind) //未找到
+			break;
+
+		double dAverDensity = 0.0;		
+		if (nNum > 0)
+			dAverDensity = dTotal/double(nNum);//平均密度
+
+		mapModelDensity.insert(pair<int, double>(i, dAverDensity));
+	}
+	
+	//计算模板里面未填涂的密度
+	//当前未填涂的模板平均密度
+	//modelRectArry
+	int nTotalGray = 0;
+	int nCount = 0;
+	for (int i=0; i<nSize; i++)
+	{
+		map<int, double>::iterator it;
+		map<int, double>::iterator itModel;
+		it = mapDensity.find(srcRects[i].nAnswerIndex);
+		//TRACE("nIndex:%d, 密度:%.4f\n", it->first, it->second);
+
+		itModel = mapModelDensity.find(modelRectArry[i].nAnswerIndex);
+		
+		double dUnFilling = it->second; //未填涂平均密度
+		double dUnFillModel = itModel->second;
+
+		double dTmp = srcRects[i].dDensity;
+		double dEps = 0.20;
+		if (max(dUnFillModel, dUnFilling) >= 0.5)
+			dEps = 0.15;
+
+		//if (srcRects[i].nQuestionNo == 27)
+		//	int kk = 0;
+
+		double dAverUnFillTmp = dUnFillModel;
+		if (dUnFilling > 0.0001) //有效
+			dAverUnFillTmp =  dUnFilling;
+		else 
+			dAverUnFillTmp = max(dUnFillModel, dUnFilling); 
+
+		if (dTmp - dAverUnFillTmp >= dEps || dTmp >= 0.75)
+		{
+			if (nSelCheck  == 0)
+			{
+				srcRects[i].nFilling = 1;
+				nTotalGray  += srcRects[i].nAverGrayValue;
+				nCount++;
+
+			}
+			/*else 
+			{
+				srcRects[i].nCheckFilling = 1;
+			}*/
+		}
+		else 
+		{
+			if (nSelCheck  == 0)
+				srcRects[i].nFilling = 0;
+			/*else 
+				srcRects[i].nCheckFilling = 0;*/
+		}
+	}
+
+	//计算已填涂的平均灰度值
+
+	if (nCount > 0)
+		nFillAverGray = nTotalGray/nCount;
+	
+	//判断单选题多选情况
+	for (int i=0; i<nSize; i++)
+	{
+		int nCout = 0;
+		int k = i;
+
+		if (srcRects[i].nSelType == 0) //单选题
+		{
+			if (srcRects[i].nFilling == 1 )
+			{
+				nCout++;
+				for (int j=i+1; j<nSize; j++)
+				{
+					if (srcRects[i].nQuestionNo != srcRects[j].nQuestionNo)
+					{
+						i = j-1;
+						break;
+					}
+
+					if (srcRects[j].nFilling == 1)
+					{
+						nCout++;
+					}
+				}
+			}
+
+		}
+
+		if (nCout >= 2)
+		{
+			//单选题多选
+			for (int m=k; m<nSize; m++)
+			{
+				if (srcRects[k].nQuestionNo != srcRects[m].nQuestionNo)
+					break;
+
+				if (srcRects[m].nFilling == 1)
+				{
+					int nGrayTmp = srcRects[m].nAverGrayValue;
+					if (nGrayTmp > nFillAverGray && abs(nGrayTmp - nFillAverGray) > 20)
+					{					
+						srcRects[m].nFilling = 0;
+					}
+					else if (srcRects[m].dHollowDensity <= 0.0000000000001 ) //判断填涂是否全满
+					{
+						srcRects[m].nFilling = 1;
+					}
+					else if (srcRects[m].dHollowDensity >= 0.10 )
+					{
+						srcRects[m].nFilling = 0;
+					}
+				}
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+
+ extern "C" DLL_EXPORT bool ZYJ_CutImg(const char *cFilePath, const CUTIMGINFO *pCutInfo, const int nSize)
+{
+	CxImage srcImg;
+	bool bRes = FALSE;
+	USES_CONVERSION;
+	CString strSrcPath = A2T(cFilePath);
+	strSrcPath.MakeLower();
+	
+	DWORD nFileType = GetFileType1(strSrcPath);
+	bRes = srcImg.Load(strSrcPath, nFileType); //加载原图
+	if (!bRes)	
+		return FALSE;
+
+	if (nSize <= 0)
+		return FALSE;
+
+	for (int i=0; i<nSize; i++)
+	{
+		CUTIMGINFO cutInfoTmp = pCutInfo[i];
+		CString strSaveChildPath; // 保存子图路径
+		strSaveChildPath = A2T(cutInfoTmp.cSavePath);
+		strSaveChildPath = strSaveChildPath.MakeLower();
+
+		DWORD dSaveType = GetFileType1(strSaveChildPath);
+		CRect rectSave = NewRect2Rect(cutInfoTmp.rectArea);
+		CxImage imgSave;
+		srcImg.Crop(rectSave, &imgSave);
+		if (::GetFileAttributes(strSaveChildPath)==-1)//文件未存在 2016.01.28
+		{
+			imgSave.Save(strSaveChildPath, dSaveType);
+		}
+		else //子图文件已存在
+		{
+			CxImage imgExist;
+			bRes = imgExist.Load(strSaveChildPath, dSaveType);
+
+			if (!bRes)
+				return FALSE;
+			bRes = MergeNewImage(imgExist, imgSave, strSaveChildPath);
+			if (!bRes)
+				return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+
+//识别客观题结果
+extern "C" DLL_EXPORT bool ZYJ_GetCurOmrRes1(const char *cFilePath, const int nPage, const int nOmrType, const int nThreshold, const int nRecType, ANS *dstAns, int nABFlag)
+{
+//	g_imgProcess->m_nStatueRes = -1; //初始化状态
+	CurImage curImgPara;// = new CurImage();
+	//加载当期模板
+	USES_CONVERSION;
+	bool bRes = TRUE;
+	int nFileType = CXIMAGE_FORMAT_UNKNOWN;
+	CString strFilePath = A2T(cFilePath);
+	nFileType = GetFileType1(strFilePath);
+	CxImage *srcImg = new CxImage();
+	//g_imgProcess->m_nThreshold = nThreshold;
+	curImgPara.m_nThreshold = nThreshold;
+	bRes = srcImg->Load(strFilePath, nFileType);
+	if (!bRes)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_IMAGEFILE;
+		delete srcImg;
+		srcImg = NULL;
+		return FALSE;
+	}
+	srcImg->GrayScale();
+
+	int nRectType = g_nLocalType;
+	curImgPara.v_rectModelLocal.clear();
+	curImgPara.v_modelRectArrays.clear();
+	curImgPara.v_OMRZuIDs.clear();
+	curImgPara.v_modelKhRectArray.clear();
+	
+	for (int i=0; i<g_v_rectModelLocal.size(); i++)
+	{
+		if (g_v_rectModelLocal[i].nPage == nPage)
+		{
+			curImgPara.v_rectModelLocal.push_back(g_v_rectModelLocal[i]);
+		}
+	}
+	
+	for (int i=0; i<g_v_modelRectArrays.size(); i++)
+	{
+		if (g_v_modelRectArrays[i].rect.nPage == nPage && g_v_modelRectArrays[i].nABFlag == nABFlag)
+		{
+			curImgPara.v_modelRectArrays.push_back(g_v_modelRectArrays[i]);
+		}
+	}
+	
+	for (int i=0; i<g_v_omrZuIDs.size(); i++)
+	{
+		if (g_v_omrZuIDs[i].nPage == nPage && g_v_omrZuIDs[i].nABFlag == nABFlag)
+		{
+			curImgPara.v_OMRZuIDs.push_back(g_v_omrZuIDs[i].nID);
+		}
+	}
+
+	for (int i=0; i<g_v_modelKhRA.size(); i++)
+	{
+		if (g_v_modelKhRA[i].rect.nPage == nPage)
+		{
+			curImgPara.v_modelKhRectArray.push_back(g_v_modelKhRA[i]);
+		}
+	}
+
+	if (curImgPara.v_rectModelLocal.size() < 3)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_LOCATE;
+		delete srcImg;
+		srcImg = NULL;
+		return FALSE;
+	}
+
+	//将定位点排序 以考虑图像上任意三个定位点问题
+	CRect rectLocals[3];
+	double dLenth[3] = {0.0, 0.0, 0.0};
+	for (int i=0; i<3; i++)
+	{
+		rectLocals[i] = NewRect2Rect(curImgPara.v_rectModelLocal[i]);
+	}
+	dLenth[0] = CImageProcess::GetLength(rectLocals[0].CenterPoint(), rectLocals[1].CenterPoint());
+	dLenth[1] = CImageProcess::GetLength(rectLocals[0].CenterPoint(), rectLocals[2].CenterPoint());
+	dLenth[2] = CImageProcess::GetLength(rectLocals[1].CenterPoint(), rectLocals[2].CenterPoint());
+
+	for (int i=0; i<3; i++)
+	{
+		if (abs(max(max(dLenth[0],dLenth[1]), dLenth[2]) - dLenth[i]) <= 0.00000001) //判断斜边选
+		{
+			if (i == 0)
+			{
+				NEWRECT modelTmps = curImgPara.v_rectModelLocal[0];
+				curImgPara.v_rectModelLocal[0] = curImgPara.v_rectModelLocal[2];
+				curImgPara.v_rectModelLocal[2] = modelTmps;
+			}
+			else if (i==1)
+			{
+				NEWRECT modelTmps = curImgPara.v_rectModelLocal[0];
+				curImgPara.v_rectModelLocal[0] = curImgPara.v_rectModelLocal[1];
+				curImgPara.v_rectModelLocal[1] = modelTmps;
+			}
+		}
+	}
+
+	//获取三个角定位点相关
+	//int nTime1 = GetTickCount();
+	for (int i=0; i<3; i++)
+	{
+		NEWRECT rectArea1;
+		NEWRECT dstRect;
+		rectArea1 = GetRectArea1(curImgPara.v_rectModelLocal[i], srcImg);
+		bRes = ZYJ_GetRectLocalPoint(rectArea1, curImgPara.v_rectModelLocal[i].GetWidth(), curImgPara.v_rectModelLocal[i].GetHeight(),
+		i, nRectType, dstRect, srcImg, &curImgPara);
+
+		if (!bRes)
+		{
+			//g_imgProcess->m_nStatueRes = ERROR_LOCATE;
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+	}
+
+	vector<RECTARRAY> v_dstRectArry;
+	if (nRecType == 1)  //考号 pany  2016.04.08
+	{
+		vector<RECTARRAY> v_dstArrayZuID;
+		if (curImgPara.v_modelKhRectArray.size() <= 0)
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+
+		bRes = ZYJ_GetRectArray(nOmrType, v_dstArrayZuID, 1, curImgPara.v_modelKhRectArray[0].nZuID, srcImg, &curImgPara);
+		if (!bRes)
+		{
+			delete srcImg;
+			srcImg = NULL;
+
+			//delete curImgPara;
+			//curImgPara = NULL;
+			return FALSE;
+		}
+
+		for (int j=0; j<v_dstArrayZuID.size(); j++)
+			v_dstRectArry.push_back(v_dstArrayZuID[j]);
+
+		int nSize1 = curImgPara.v_modelKhRectArray.size();
+		if (nSize1  == 0)
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+
+		//RECTARRAY *dstRectArray1 =  new RECTARRAY[nSize1];
+		if (v_dstRectArry.size() == 0) //未成功获取到
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+
+		if (v_dstRectArry.size() != nSize1 )
+		{
+			vector<RECTARRAY> v_curRectArrayTmp1 = v_dstRectArry;
+			if (!GetRectArry_1(v_dstRectArry, v_curRectArrayTmp1, curImgPara.v_modelKhRectArray, srcImg, curImgPara.m_nThreshold))
+			{
+				delete srcImg;
+				srcImg = NULL;
+				return FALSE;
+			}
+		}
+
+		ZYJ_GetOmrResult(v_dstRectArry, nSize1, 0, curImgPara.v_modelKhRectArray, curImgPara.m_nAverGrayValue);
+		//ZYJ_GetOmrResult(v_dstRectArry, nSize1, 1, curImgPara);
+		int nKhLen = v_dstRectArry.size()/10;
+		CString strTmp = _T("");
+		int nCount = 0; //每列填涂的个数
+		CString strTmp1 = _T("");
+		double dDensity = 0.0;
+		for (int j=0; j<v_dstRectArry.size(); j++)
+		{
+			if (j%10 == 0)
+			{
+				nCount = 0;
+				strTmp1 = _T("-");
+				dDensity = 0.0;
+			}
+
+			if (v_dstRectArry[j].nFilling == 1)
+			{
+				nCount++;
+				if (nCount > 1)
+				{
+					if (v_dstRectArry[j].dDensity > dDensity)
+					{
+						dDensity = v_dstRectArry[j].dDensity;
+						strTmp1.Format(L"%d", j%10);
+					}
+				}
+				else
+				{
+					dDensity = v_dstRectArry[j].dDensity;
+					strTmp1.Format(L"%d", j%10);
+				}
+				
+			}
+
+			if (j%10 ==  9)
+			{
+				strTmp += strTmp1;
+			}
+		}
+
+		if (strTmp.GetLength() > 26)
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+
+		dstAns[0].nID = curImgPara.v_modelKhRectArray[0].nZuID;
+		memcpy(dstAns[0].cAnswer, T2A(strTmp), strTmp.GetLength());
+
+		delete srcImg;
+		srcImg = NULL;
+		return TRUE;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	int nSize = curImgPara.v_modelRectArrays.size();
+	if (nSize  == 0)
+	{
+		delete srcImg;
+		srcImg = NULL;
+		return FALSE;
+	}
+
+	for (int i=0; i<curImgPara.v_OMRZuIDs.size(); i++)
+	{
+		vector<RECTARRAY> v_dstArrayZuID;
+		bRes = ZYJ_GetRectArray(nOmrType, v_dstArrayZuID, 0, curImgPara.v_OMRZuIDs[i], srcImg, &curImgPara);
+	
+		if (!bRes)
+			continue;
+
+		for (int j=0; j<v_dstArrayZuID.size(); j++)
+			v_dstRectArry.push_back(v_dstArrayZuID[j]);
+	}
+
+	if (v_dstRectArry.size() == 0) //未成功获取到
+	{
+		delete srcImg;
+		srcImg = NULL;
+		return FALSE;
+
+	}
+
+	if (v_dstRectArry.size() != nSize )
+	{
+		vector<RECTARRAY> v_curRectArrayTmp = v_dstRectArry;
+		if (!GetRectArry_1(v_dstRectArry, v_curRectArrayTmp, curImgPara.v_modelRectArrays, srcImg, curImgPara.m_nThreshold))
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+	}
+	
+	ZYJ_GetOmrResult(v_dstRectArry, nSize, 0, curImgPara.v_modelRectArrays, curImgPara.m_nAverGrayValue);
+
+	//将识别结果分配至对应ID当中
+	int nID1 = -1;
+	ANS ansTmp;
+	CString strAns = L"";
+	CString strCheckAns = L"";
+	vector<ANS> v_ans;
+	vector<ANS> v_ansCheck;
+	for (int i=0; i < nSize; i++)
+	{
+		RECTARRAY rArrayTmp = v_dstRectArry[i];
+		
+		//TRACE("ID:%d, %d, %d, %.4f, %d\n", rArrayTmp.nQuestionNo-6, rArrayTmp.rect.pTopLeft.nX,  rArrayTmp.rect.pTopLeft.nY, rArrayTmp.dDensity, rArrayTmp.nAverGrayValue);
+
+		if (rArrayTmp.nQuestionNo == -1)
+			return FALSE;
+
+		if (rArrayTmp.nQuestionNo > nID1 )
+		{
+			ansTmp.nID = rArrayTmp.nQuestionNo;
+			nID1 = rArrayTmp.nQuestionNo;
+			strcpy(ansTmp.cTitle, rArrayTmp.cTitle);
+			if (v_ans.size() > 0)
+				memcpy(v_ans[v_ans.size()-1].cAnswer, T2A(strAns), strAns.GetLength());
+			v_ans.push_back(ansTmp);
+			strAns = L"";
+		}
+
+		if (rArrayTmp.nFilling == 1) //已填涂
+		{
+			char c[2];
+			c[0] = 'A' + rArrayTmp.nAnswerIndex;
+			c[1] = '\0';
+			strAns += A2T(c);
+		}
+		else  //未填涂 
+			strAns += L"";
+
+		if (i == nSize -1)
+		{
+			strcpy(ansTmp.cTitle, rArrayTmp.cTitle);
+			if (v_ans.size() > 0)
+				memcpy(v_ans[v_ans.size()-1].cAnswer, T2A(strAns), strAns.GetLength());
+		}
+	}
+
+	if (v_ans.size() > 0)
+	{
+		for (int i=0; i<v_ans.size(); i++)
+		{
+			dstAns[i] = v_ans[i];
+			CString strText1 = A2T(dstAns[i].cAnswer) ;
+			if (strText1.IsEmpty())
+			{
+				strText1 = _T("*");
+				memcpy(dstAns[i].cAnswer, T2A(strText1), strText1.GetLength());
+			}
+
+			//TRACE("ID:%d, 答案：%s\n", dstAns[i].nID, dstAns[i].cAnswer);
+		}
+	}
+
+	delete srcImg;
+	srcImg = NULL;
+
+	//delete curImgPara;
+	//curImgPara = NULL;
+	return TRUE;
+}
+
+extern "C" DLL_EXPORT int ZYJ_GetLastError(char cResInfo[256])
+{
+	int nResState = 0;//g_imgProcess->m_nStatueRes;
+	/*memset(cResInfo, '\0', 256);
+	CString strRes = L"";
+	USES_CONVERSION;
+	if (nResState == RES_SUCCESS)
+		strRes = _T("识别成功");
+	else if (nResState == ERROR_IMAGEFILE)
+		strRes = _T("加载图像失败");
+	else if (nResState == ERROR_MODELFILE)
+		strRes = _T("加载模板失败");
+	else if (nResState == ERROR_LOCATE) 
+		strRes = _T("定位点失败");
+	else if (nResState == ERROR_RECOGNIZE)
+		strRes = _T("识别选项失败");
+	strcpy(cResInfo, T2A(strRes));*/
+	return nResState;
+}
+
+extern "C" DLL_EXPORT bool ZYJ_SaveImgHandle(HANDLE hBmp, const char *cPath)
+{
+	CxImage img;
+	bool bres = img.CreateFromHANDLE(hBmp);
+	if (!bres)
+	{
+		return FALSE;
+	}
+
+	USES_CONVERSION;
+	CString strFilePath = A2T(cPath);
+	int nFileType;
+	nFileType = GetFileType1(strFilePath);
+	bres = img.GrayScale();
+	if (!bres)
+		return FALSE;
+
+	bres = img.SetCodecOption(7);
+	if (!bres)
+		return FALSE;
+
+	if (nFileType == CXIMAGE_FORMAT_JPG)
+		img.SetJpegQuality(75);
+	bres = img.Save(strFilePath, nFileType);
+	return bres;
+}
+
+extern "C" DLL_EXPORT bool ZYJ_LoadTemplateFile(const char *cModelPath)
+{
+	//g_imgProcess->m_nStatueRes = -1; //初始化状态
+	g_v_modelRectArrays.clear();
+	g_v_rectModelLocal.clear();
+	g_v_omrZuIDs.clear();
+	g_v_modelKhRA.clear();
+
+	//curImgPara->v_modelRectArrays.clear();
+	//curImgPara->v_rectModelLocal.clear();
+	//curImgPara->v_OMRZuIDs.clear();
+	//curImgPara->v_modelKhRectArray.clear();
+
+	int nCurPage = -1;
+	USES_CONVERSION;
+	CString strPath = A2T(cModelPath);
+	bool bRes = FALSE;
+	CMarkup makeupXml;
+	bRes = makeupXml.Load(strPath);
+	if (!bRes)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_MODELFILE;
+		return false;
+	}
+
+	CString strTagName = _T(""); 
+	CString strData = _T("");  
+	bool bFind = FALSE;
+
+	makeupXml.IntoElem();
+	bFind = makeupXml.FindElem(L"ExamInfo");
+	if (!bFind)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_MODELFILE;
+		return FALSE;
+	}
+
+	//获取定位点类型 2016.02.17
+	bFind = makeupXml.FindChildElem(L"Exam");
+	if (!bFind)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_MODELFILE;
+		return FALSE;
+	}
+
+	makeupXml.IntoElem();
+	bFind = makeupXml.FindChildElem(L"Location");
+	if (!bFind)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_MODELFILE;
+		return FALSE;
+	}
+
+	strData = makeupXml.GetChildAttrib(L"val");
+	g_nLocalType = atoi(T2A(strData)); //定位点类型
+	if (g_nLocalType != 1 && g_nLocalType != 2)
+		return FALSE;
+
+	bFind = makeupXml.FindChildElem(L"pageCount"); //新增  pany 2016.03.14
+	if (!bFind)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_MODELFILE;
+		return FALSE;
+	}
+
+	strData = makeupXml.GetChildAttrib(L"val");
+	int nPageCount = atoi(T2A(strData));
+	
+	bFind = makeupXml.FindChildElem(L"paperTypeCount"); //新增 pany 2016.05.10
+	int nPaperTypeCount = 1;
+	if (!bFind) //兼容之前 
+	{
+		nPaperTypeCount = 1;
+	}
+	else 
+	{
+		strData = makeupXml.GetChildAttrib(L"val");
+		nPaperTypeCount = atoi(T2A(strData));
+	}
+
+	makeupXml.OutOfElem();
+
+	bFind = makeupXml.FindChildElem(L"Info");
+	if (!bFind)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_MODELFILE;
+		return FALSE;
+	}
+
+	strData = makeupXml.GetChildData();  
+
+	makeupXml.IntoElem();
+	while (makeupXml.FindChildElem(L"Zuinfo"))
+	{
+		strData = makeupXml.GetChildAttrib(L"pageid");
+		nCurPage = atoi(T2A(strData));
+		if (nCurPage <= 0 || nCurPage > nPageCount) //无效页码
+			continue;
+
+		strData = makeupXml.GetChildAttrib(L"zustyle"); //获取属性
+		int nX, nY, nWidth, nHeight, nPix;
+		if (atoi(T2A(strData)) == 0) //定位点
+		{
+			makeupXml.IntoElem();
+			strData = makeupXml.GetElemContent();
+			bFind = makeupXml.FindChildElem(L"Area");
+			makeupXml.IntoElem();
+			bFind = makeupXml.FindChildElem(L"Area0");
+			strData = makeupXml.GetChildAttrib(L"x");
+			nX = atoi(T2A(strData));
+
+			strData = makeupXml.GetChildAttrib(L"y");
+			nY = atoi(T2A(strData));
+
+			strData = makeupXml.GetChildAttrib(L"width");
+			nWidth = atoi(T2A(strData));
+
+			strData = makeupXml.GetChildAttrib(L"height");
+			nHeight = atoi(T2A(strData));
+			NEWRECT rect1;
+			rect1.SetRect(nX, nY, nWidth, nHeight);
+			rect1.nPage = nCurPage;
+
+			if (nWidth*nHeight > 0)
+				g_v_rectModelLocal.push_back(rect1); //有效 pany 2016.05.19
+			makeupXml.OutOfElem();
+			makeupXml.OutOfElem();
+		}
+		else if (atoi(T2A(strData)) == 7  || atoi(T2A(strData)) == 12) //客观题 单选 多选
+		{
+			int nSelType = atoi(T2A(strData));
+			//存储组ID
+			strData = makeupXml.GetChildAttrib(L"zuid");
+			int nZuId = atoi(T2A(strData));
+			int nABFlag = -1;
+			
+			if (nPaperTypeCount == 2) //AB
+			{
+				strData = makeupXml.GetChildAttrib(L"ABFlag");
+
+				if (strData.Compare(L"A") == 0)
+					nABFlag = 0;
+				else if (strData.Compare(L"B") == 0)
+					nABFlag = 1;
+			}
+
+			OMR_ZUID omrZuID;
+			omrZuID.nID = nZuId;
+			omrZuID.nPage = nCurPage;
+			omrZuID.nABFlag = nABFlag;
+			g_v_omrZuIDs.push_back(omrZuID);
+			makeupXml.IntoElem();
+			while( makeupXml.FindChildElem(L"Quesid"))
+			{
+				RECTARRAY rectArrayTmp; 
+				int nAnswerNo;
+				CString strCurTitle;
+				strData = makeupXml.GetChildAttrib(L"val"); //对应题号
+
+				nAnswerNo = atoi(T2A(strData));
+				
+				//新增 2016.06.17
+				bFind = makeupXml.FindChildElem(L"Questitle");
+				strData = makeupXml.GetChildAttrib(L"val");
+				strCurTitle = strData;
+				
+
+				bFind = makeupXml.FindChildElem(L"Area");
+
+				makeupXml.IntoElem();
+				for (int i=0; i<26; i++)
+				{
+					CString strTmp;
+					strTmp.Format(L"Area%d", i);
+					bFind = makeupXml.FindChildElem(strTmp);
+					if (!bFind)
+						break;
+
+					strData = makeupXml.GetChildAttrib(L"x");
+					nX = atoi(T2A(strData));
+					strData = makeupXml.GetChildAttrib(L"y");
+					nY = atoi(T2A(strData));
+					strData = makeupXml.GetChildAttrib(L"width");
+					nWidth = atoi(T2A(strData));
+					strData = makeupXml.GetChildAttrib(L"height");
+					nHeight = atoi(T2A(strData));
+
+					strData = makeupXml.GetChildAttrib(L"pix");
+					nPix = atoi(T2A(strData));
+					rectArrayTmp.SetRectArray(nX, nY, nWidth, nHeight, nAnswerNo, i);
+					rectArrayTmp.rect.nPage = nCurPage;
+					int nLen1 = strCurTitle.GetLength();
+					wchar_t *wch= strCurTitle.GetBuffer(0); 
+					int size=WideCharToMultiByte(CP_ACP,0,wch,-1,NULL,0,NULL,NULL); 
+					if(!WideCharToMultiByte(CP_ACP,0,wch,-1,rectArrayTmp.cTitle,size,NULL,NULL)) 
+					{ 
+						return false; 
+					}
+					rectArrayTmp.nZuID = nZuId;
+					rectArrayTmp.nABFlag = nABFlag;
+					rectArrayTmp.dDensity = double(nPix)/ double(max(nWidth*nHeight, 1));
+
+					if (nSelType == 12)
+						rectArrayTmp.nSelType = 0; //单选
+					else 
+						rectArrayTmp.nSelType = 1;
+					g_v_modelRectArrays.push_back(rectArrayTmp);
+				}
+				makeupXml.OutOfElem();
+			}
+			makeupXml.OutOfElem();
+		}
+		else if (atoi(T2A(strData)) == 5) //考号 2016.04.08
+		{
+			strData = makeupXml.GetChildAttrib(L"zuid");
+			int nZuId = atoi(T2A(strData));
+			makeupXml.IntoElem();
+			int nAnswerNo1 = 0;
+			RECTARRAY rectArrayTmp; 
+
+			while (makeupXml.FindChildElem(L"Area"))
+			{
+				makeupXml.IntoElem();
+				for (int i=0; i<10; i++)
+				{
+					CString strTmp;
+					strTmp.Format(L"Area%d", i);
+					bFind = makeupXml.FindChildElem(strTmp);
+					if (!bFind)
+						return FALSE;
+
+					strData = makeupXml.GetChildAttrib(L"x");
+					nX = atoi(T2A(strData));
+					strData = makeupXml.GetChildAttrib(L"y");
+					nY = atoi(T2A(strData));
+					strData = makeupXml.GetChildAttrib(L"width");
+					nWidth = atoi(T2A(strData));
+					strData = makeupXml.GetChildAttrib(L"height");
+					nHeight = atoi(T2A(strData));
+					rectArrayTmp.SetRectArray(nX, nY, nWidth, nHeight, nAnswerNo1, i);
+					rectArrayTmp.rect.nPage = nCurPage;
+					rectArrayTmp.nZuID = nZuId;
+					rectArrayTmp.nABFlag = -1;
+					g_v_modelKhRA.push_back(rectArrayTmp);
+
+				}
+				nAnswerNo1++;
+				makeupXml.OutOfElem();
+			}
+			makeupXml.OutOfElem();
+		}
+	}
+	makeupXml.OutOfElem();
+	return TRUE;
+}
+
+
+
+extern "C" DLL_EXPORT bool ZYJ_IsComplete(const char *cFilePath, int nMinLen, int nAngleIndex)
+{
+	USES_CONVERSION;
+	CString strFilePath = A2T(cFilePath);
+	int nFileType = GetFileType1(strFilePath);
+
+	CxImage srcImg;
+	bool bRes = srcImg.Load(strFilePath, nFileType);
+	srcImg.GrayScale();
+	if (!bRes)
+	{
+		return FALSE;
+	}
+
+	int nImgWidth = srcImg.GetWidth();
+	int nImgHeight = srcImg.GetHeight();
+	
+	int nSearchWidth = min(nImgWidth, nImgHeight)/4;
+	if (nSearchWidth < 100 && nSearchWidth < min(nImgWidth, nImgHeight))
+		nSearchWidth = 100;
+
+	CRect rectAreas[4];
+	rectAreas[0].SetRect(0, 0, nSearchWidth, nSearchWidth);
+	rectAreas[1].SetRect(nImgWidth-1-nSearchWidth, 0, nImgWidth-1, nSearchWidth);
+	rectAreas[2].SetRect(0, nImgHeight-1-nSearchWidth, nSearchWidth, nImgHeight-1);
+	rectAreas[3].SetRect(nImgWidth-1-nSearchWidth, nImgHeight-1-nSearchWidth, nImgWidth-1, nImgHeight-1);
+
+		CxImage *cropImg =  new CxImage();
+		if (nAngleIndex < 0 || nAngleIndex > 3)
+			nAngleIndex = 0;
+
+		switch(nAngleIndex)
+		{
+			bRes = srcImg.Crop(rectAreas[nAngleIndex], cropImg);
+			case  0: 
+				break;
+			case  1:
+				cropImg->RotateLeft(cropImg);
+				break;
+			case  2:
+				cropImg->RotateRight(cropImg);
+				break;
+			case  3:
+				cropImg->Rotate180(cropImg);
+				break;
+			default:
+				break;
+
+		}
+		if (!bRes)
+		{
+			return FALSE;
+		}
+		
+		//统计当前黑点个数
+		int nCount = 0;
+		int nTop = 0;
+		int nBottom = 0;
+		int nRight = 0;
+		bool bStart = TRUE;
+		for (int n=0; n<=nSearchWidth-1; n++)
+		{
+			bool bContinue = FALSE;
+			int nLen = 0;
+			for (int m=0; m<=nSearchWidth-1; m++)
+			{
+				int nGrayValue = GETGRAYVALUE1(cropImg, m, n);
+				if (nGrayValue == 0)
+				{
+					if (m > nRight)
+						nRight = m;
+
+					if (n>nBottom)
+						nBottom = n;
+					bContinue = TRUE;
+					nCount++;
+					m += 5;
+
+					if (m >= nMinLen)
+						break;
+					//TRACE("m:%d\n", m);
+				}
+				else 
+				{
+					if (m == 0)
+						bStart = FALSE;
+
+					if (nLen > 0 && abs(nLen - m) > 50) //突变
+					{
+					   bStart = FALSE; //结束
+					}
+					nLen = m;
+					bContinue = FALSE;
+					break;
+				}
+			}
+				
+
+			if (!bStart)
+				break;
+
+			n+= 5;	
+
+			if (n>=nMinLen)
+				break;
+		}
+		delete cropImg;
+		cropImg = NULL;
+		double nLen = CImageProcess::GetLength(CPoint(0, nBottom), CPoint(nRight, 0));
+
+		if (nLen >= nMinLen && nBottom >= 50 && nRight >= 50)
+		{
+		/*	double dDensity = double(nCount)/double(nBottom*nRight*0.5);
+			if (int(dDensity*100.0) >= 80)*/
+			return FALSE;
+		}
+	
+	return TRUE;
+}
+
+
+// extern "C" DLL_EXPORT bool ZYJ_GetCurKHOmr(const char *cFilePath, const int const int nOmrType, int nThreshold, char cKh[35])
+//{
+//	memset(cKh, '\0', 35);
+//	
+//
+//	return TRUE;
+//}
+
+int GetBlackColor(CxImage cxImage)    
+{    
+	long i;    
+	int iBlackFlag = 0;    
+	RGBQUAD *pData = cxImage.GetPalette();    
+	long nPaletteSize = cxImage.GetPaletteSize()/sizeof(RGBQUAD);    
+	for(i=0;i<nPaletteSize;i++)    
+	{    
+		if(pData[i].rgbBlue==0 && pData[i].rgbGreen==0 && pData[i].rgbRed==0)    
+		{    
+			iBlackFlag = i;    
+			break;    
+		}    
+	}    
+	return iBlackFlag;    
+}   
+
+extern "C" DLL_EXPORT bool ZYJ_Cximage2Iplimage(HANDLE hBmp, IplImage **dst)
+{
+	CxImage *src = new CxImage();
+	bool bRet = src->CreateFromHANDLE(hBmp);
+	
+	if (!bRet)
+	{
+		delete src;
+		src = NULL;
+		return FALSE;
+	}
+
+	    
+	if(!src || !src->IsValid())    
+	{    
+		delete src;
+		src = NULL;
+		bRet = false;    
+		return bRet;    
+	}    
+	src->GrayScale();
+	int nPalatteCount = src->GetPaletteSize()/sizeof(RGBQUAD);;    
+	RGBQUAD *pPal = src->GetPalette();    
+	int iBackColor = GetBlackColor(*src);    
+	long i = 0,j = 0;    
+	long nImageWidth = 0,nImageHeight = 0;    
+	nImageWidth = src->GetWidth();    
+	nImageHeight = src->GetHeight();    
+	long nBitCunt = src->GetBpp();    
+	if(nBitCunt<=1)    
+	{    
+		*dst = cvCreateImage(cvSize(nImageWidth,nImageHeight),IPL_DEPTH_8U,1);     
+		cvZero(*dst);    
+		//转换Cximage to IplImage     
+		for(j=0;j<nImageHeight;j++)    
+		{    
+			for(i=0;i<nImageWidth;i++)    
+			{    
+				if(src->GetPixelIndex(i,j)==iBackColor)    
+				{    
+					CV_IMAGE_ELEM(*dst,uchar,nImageHeight-1-j,i) = 0;    
+				}    
+				else    
+				{    
+					CV_IMAGE_ELEM(*dst,uchar,nImageHeight-1-j,i) = 255;    
+				}    
+			}    
+		}    
+	}    
+	else if(nBitCunt<=8)    
+	{    
+		*dst = cvCreateImage(cvSize(nImageWidth,nImageHeight),IPL_DEPTH_8U,1);     
+		cvZero(*dst); 
+		//src->Mirror();
+		for (int i=0; i<nImageHeight; i++)
+		{
+			memcpy((*dst)->imageData+i*BYTESPERLINE(nImageWidth, 8), src->info.pImage+(nImageHeight-1-i)*BYTESPERLINE(nImageWidth, 8), BYTESPERLINE(nImageWidth, 8));
+		}
+	}    
+	else if(nBitCunt<=16)    
+	{    
+		*dst = cvCreateImage(cvSize(nImageWidth,nImageHeight),IPL_DEPTH_16U,1);     
+		(*dst)->origin = 1;//底—左结构 (Windows bitmaps 风格)      
+		cvZero(*dst);    
+		//转换Cximage to IplImage     
+		for(j=0;j<nImageHeight;j++)    
+		{    
+			for(i=0;i<nImageWidth;i++)    
+			{    
+				BYTE *pSrc = src->GetBits(j) + 2*i;    
+				CV_IMAGE_ELEM(*dst,ushort,j,i) = (*pSrc) + (*(pSrc+1))*256;    
+			}    
+		}    
+	}    
+	else //24色     
+	{    
+		//src->Mirror();
+		*dst = cvCreateImage(cvSize(nImageWidth,nImageHeight),IPL_DEPTH_8U,3);     
+		(*dst)->origin = 1;//底—左结构 (Windows bitmaps 风格)      
+		cvZero(*dst);    
+		//转换Cximage to IplImag     
+		memcpy((*dst)->imageData, src->GetBits(0), src->GetSize());  
+	}    
+	delete src;
+	src = NULL;
+	return bRet;    
+
+}
+
+
+extern "C" DLL_EXPORT bool ZYJ_SaveIplImage(IplImage *src, const char *cPath)
+{
+	if (src == NULL)
+		return FALSE;
+
+	int nWidth = src->width;
+	int nHeight = src->height;
+
+	if (nWidth*nHeight <= 0)
+		return FALSE;
+
+	CxImage *dstImg =  new CxImage();
+	dstImg->Create(nWidth, nHeight, src->depth, CXIMAGE_FORMAT_BMP);
+	dstImg->SetGrayPalette(); 
+	dstImg->GrayScale();
+
+	 for (int i=0; i<nHeight; i++)
+	 {
+		 memcpy(dstImg->info.pImage+i*BYTESPERLINE(nWidth, 8), src->imageData+(nHeight-1-i)*BYTESPERLINE(nWidth, 8), BYTESPERLINE(nWidth, 8));   	
+	 }
+	 
+	 USES_CONVERSION;
+	 dstImg->GrayScale();
+	 dstImg->SetCodecOption(7);
+	 dstImg->SetJpegQuality(75);
+	 dstImg->Save(A2T(cPath), CXIMAGE_FORMAT_JPG);
+	 delete dstImg;
+	 dstImg = NULL;
+	 return TRUE;
+}
+
+
+extern "C" DLL_EXPORT bool ZYJ_GetImgEdge(const char *cPath, int nThreshold)
+{
+	CxImage *srcImg = new CxImage();
+	USES_CONVERSION;
+	int nFileType = GetFileType1(A2T(cPath));
+	srcImg->Load(A2T(cPath), CXIMAGE_FORMAT_JPG);
+	srcImg->GrayScale();
+	srcImg->Threshold(nThreshold);
+	srcImg->GrayScale();
+
+	/*int *nValue = new int[srcImg->GetWidth()*srcImg->GetHeight()];
+	int nWidth = srcImg->GetWidth();
+	int nHeight = srcImg->GetHeight();
+
+	for (int i=0; i<srcImg->GetHeight(); i++)
+	{
+	
+		if (i==0 || i==srcImg->GetHeight()-1)
+			continue;
+
+		for (int j=0; j<srcImg->GetWidth(); j++)
+		{
+			if (GETGRAYVALUE1(srcImg, j, i) == 0)
+			{
+				nValue[i*srcImg->GetWidth() + j] = 0;
+				if (j==0 || j==srcImg->GetWidth()-1)
+					continue;
+
+				//TRACE("i:%d, j:%d\n", i, j);
+
+
+				if (GETGRAYVALUE1(srcImg,j,i-1) == 0 && GETGRAYVALUE1(srcImg,j-1, i) == 0 &&
+					GETGRAYVALUE1(srcImg,j,i+1) == 0 && GETGRAYVALUE1(srcImg,j+1, i) == 0)
+				{
+						nValue[i*srcImg->GetWidth() + j] = 1;
+				}
+				else 
+					nValue[i*srcImg->GetWidth() + j] = 0;
+
+			}
+			else
+				nValue[i*srcImg->GetWidth() + j] = 1;
+
+		}
+	}
+
+	for (int i=0; i<srcImg->GetHeight(); i++)
+	{
+		for (int j=0; j<srcImg->GetWidth(); j++)
+		{
+			if (nValue[i*srcImg->GetWidth() + j] == 1)
+				SETGRAYVALUE(srcImg->info.pImage, srcImg->GetWidth(), srcImg->GetHeight(), j, i, 255);
+			else 
+				SETGRAYVALUE(srcImg->info.pImage, srcImg->GetWidth(), srcImg->GetHeight(), j, i, 0);
+		}
+	}*/
+
+	//g_nIndex++;
+	CString strDest;
+	CRect cropRect;
+	cropRect.SetRect(244, 386, 244+ 437, 386+105);
+	srcImg->Crop(cropRect, srcImg);
+	
+	//计算图像在竖直方向上投影
+	int nWidth = srcImg->GetWidth();
+	int nHeight = srcImg->GetHeight();
+	int *nHValue = new int[nHeight];
+	bool bFind1 = false;
+	for (int i=0; i<nHeight; i++)
+	{
+		nHValue[i] = 0;
+		for (int j=0; j<nWidth; j++)
+		{
+			//统计当前横向
+			if (GETGRAYVALUE1(srcImg, j, i) == 0)
+			{
+				nHValue[i]++;
+			}	
+		}
+
+		if (abs(nHValue[i] - 355) <= nEPS)
+		{
+			
+			//将其上下5个像素过滤干净
+			for (int m=0; m<3; m++)
+			{
+				int nH1 = i-m;
+				int nH2 = i+m;
+				if (nH1 < 0)
+					nH1 = 0;
+
+				if (nH2 > nHeight-1)
+					nH2 = nHeight-1;
+			
+				memset(srcImg->info.pImage + (nHeight-1-nH1)*BYTESPERLINE(nWidth, 8), 255, BYTESPERLINE(nWidth, 8));
+				memset(srcImg->info.pImage + (nHeight-1-nH2)*BYTESPERLINE(nWidth, 8), 255, BYTESPERLINE(nWidth, 8));
+				
+			}
+		}
+		//TRACE("竖向黑点个数:%d, y：%d\n", nHValue[i], i);
+	}
+	
+	int *nVValue = new int[nWidth];
+	//计算在水平方向投影
+	for (int i=0; i<nWidth; i++)
+	{
+		nVValue[i] = 0;
+		for (int j=0; j<nHeight; j++)
+		{
+			if (GETGRAYVALUE1(srcImg, i, j) == 0)
+			{
+				nVValue[i]++;
+			}
+		}
+
+		if (abs(nVValue[i] - 55) <= nEPS)
+		{
+			for (int m=0; m<3; m++)
+			{
+				int nV1 = i-m;
+				int nV2 = i+m;
+				if (nV1 < 0)
+					nV1 = 0;
+
+				if (nV2 > nWidth-1)
+					nV2 = nWidth-1;
+
+				for (int k=0; k<nHeight; k++)
+				{
+					memset(srcImg->info.pImage + (nHeight-1-k)*BYTESPERLINE(nWidth, 8) + nV1, 255, 1);
+					memset(srcImg->info.pImage + (nHeight-1-k)*BYTESPERLINE(nWidth, 8) + nV2, 255, 1);
+				}
+
+			}
+		}
+
+		//TRACE("横向黑点个数:%d, x: %d\n", nVValue[i], i);
+	}
+
+
+	/*strDest.Format(L"c:\\test_%d.jpg", 0);
+	srcImg->Save(strDest, CXIMAGE_FORMAT_JPG);*/
+	delete srcImg;
+	srcImg = NULL;
+
+	delete []nHValue;
+	nHValue = NULL;
+
+	delete []nVValue;
+	nVValue = NULL;
+	//delete []nValue;
+	//nValue = 0;
+
+	return TRUE;
+}
+
+//自动获取图像四周定位点
+extern "C" DLL_EXPORT bool ZYJ_GetAllImgLocalPoints(const char *cPath, int nThreshold)
+{
+	CxImage *pSrcImg = new CxImage();
+	bool bRes = false;
+	USES_CONVERSION; 
+	CString strPath = A2T(cPath);
+	DWORD nFileType = GetFileType1(strPath);
+	bRes = pSrcImg->Load(strPath, nFileType);
+
+	if (!bRes)
+	{
+		delete pSrcImg;
+		pSrcImg = NULL;
+		return false;
+	}
+
+	pSrcImg->GrayScale();
+	int nWidth = pSrcImg->GetWidth();
+	int nHeight = pSrcImg->GetHeight();
+
+	int nAreaWidth = max(nWidth/2, 1);
+	int nAreaHeight = max(nHeight/2, 1);
+	
+	int nCount = 0;
+	CImageProcess imgProcsessTmp;
+	for (int i=0; i<4; i++)
+	{
+		CRect rectArea; //搜索点区域 2016.05.09
+		if (i == 0)
+			rectArea.SetRect(0, 0, nAreaWidth-1, nAreaHeight-1);
+		else if (i==1)
+			rectArea.SetRect(nWidth-1-nAreaWidth+1, 0, nWidth-1, nAreaHeight-1);
+		else if (i==2)
+			rectArea.SetRect(0, nHeight-1-nAreaHeight+1, nWidth-1, nHeight-1);
+		else if (i == 3)
+			rectArea.SetRect(nWidth-1-nAreaWidth+1, nHeight-1-nAreaHeight+1, nWidth-1, nHeight-1);
+
+		CRect dstRectTmp;
+		CxImage imgCrop;
+		pSrcImg->Crop(rectArea, &imgCrop);
+		CRect rect1;
+		rect1.SetRect(0, 0, nAreaWidth-1, nAreaHeight-1);
+		bRes = imgProcsessTmp.GetRectPoint(dstRectTmp, pSrcImg, i, rect1, &imgCrop, nThreshold, CSize(20, 20), CSize(100, 80));
+
+		if (bRes)
+		{
+			//TRACE("nIndex:%d, x:%d, y:%d, w:%d, h:%d\n", i, rectArea.TopLeft().x + dstRectTmp.TopLeft().x, rectArea.TopLeft().y + dstRectTmp.TopLeft().y, dstRectTmp.Width(), dstRectTmp.Height());
+			nCount++;
+		}
+	}
+
+	if (nCount < 3)
+	{
+		delete pSrcImg;
+		pSrcImg = NULL;
+		return false;
+	}
+
+	delete pSrcImg;
+	pSrcImg = NULL;
+	return true;
+
+}
+
+extern "C" DLL_EXPORT bool ZYJ_SetImgCoordinateSystem(const char *cPath, NEWPOINT pStart, NEWRECT rectArea)
+{
+	CxImage *pSrcImg = new CxImage();
+	bool bRes = false;
+	USES_CONVERSION;
+	DWORD nFileType = GetFileType1(A2T(cPath));
+
+	bRes = pSrcImg->Load(A2T(cPath), nFileType);
+	if (!bRes)
+	{
+		delete pSrcImg;
+		pSrcImg = NULL;
+		return false;
+	}
+	
+	pSrcImg->GrayScale();
+	int nWidth = pSrcImg->GetWidth();
+	int nHeight = pSrcImg->GetHeight();
+
+	CxImage newImg;
+	newImg.Create(2*nWidth, 2*nHeight, 8, CXIMAGE_FORMAT_BMP);
+	newImg.SetGrayPalette();
+	newImg.GrayScale();
+	memset(newImg.info.pImage, 255, BYTESPERLINE(2*nWidth, 8)*2*nHeight);
+
+	for (int i=nHeight/2; i<3*nHeight/2; i++)
+	{
+		memcpy(newImg.info.pImage + (2*nHeight - 1 - i)*BYTESPERLINE(2*nWidth, 8) + nWidth/2,
+			pSrcImg->info.pImage + (nHeight-1-(i-nHeight/2))*BYTESPERLINE(nWidth, 8), BYTESPERLINE(nWidth, 8));
+	}
+
+	CRect rectArea1;
+	rectArea1 = NewRect2Rect(rectArea);
+
+	CPoint pStartNew;
+	pStartNew.SetPoint(rectArea1.TopLeft().x - pStart.nX + nWidth/2, rectArea1.TopLeft().y - pStart.nY + nHeight/2);
+	CRect rectArea2;
+	rectArea2.SetRect(pStartNew.x, pStartNew.y, pStartNew.x + nWidth, pStartNew.y + nHeight);
+	
+	CxImage dstImg;
+	newImg.Crop(rectArea2, &dstImg);
+	dstImg.GrayScale();
+	dstImg.SetCodecOption(7);
+	dstImg.SetJpegQuality(75);
+	dstImg.Save(A2T(cPath), nFileType);
+
+	//CxImage cropImg;
+	//pSrcImg->Crop(rectArea1, &cropImg);
+	//cropImg.GrayScale();
+
+	/*CxImage *dstImg =  new CxImage();
+	dstImg->Create(nWidth, nHeight, 8, CXIMAGE_FORMAT_BMP);
+	dstImg->SetGrayPalette(); 
+	dstImg->GrayScale();
+	memset(dstImg->info.pImage, 255, BYTESPERLINE(nWidth, 8)*nHeight);
+
+	int k=0;
+	int nCropWidth = cropImg.GetWidth();
+	int nCropHeight = cropImg.GetHeight();
+	for (int i=pStart.nY; i<nHeight; i++)
+	{
+		if (i - pStart.nY >= nCropHeight)
+			break;
+
+		memcpy(dstImg->info.pImage + (nHeight-1-i)*BYTESPERLINE(nWidth, 8) + pStart.nX, 
+			cropImg.info.pImage + (nCropHeight-1-(i-pStart.nY))*BYTESPERLINE(nCropWidth, 8),
+			min(BYTESPERLINE(nCropWidth, 8), nWidth-1-pStart.nX));
+	}*/
+
+	delete pSrcImg;
+	pSrcImg = NULL;
+
+	//dstImg->GrayScale();
+	//dstImg->SetCodecOption(7);
+	//dstImg->SetJpegQuality(75);
+	//dstImg->Save(A2T(cPath), nFileType);
+	//delete dstImg;
+	//dstImg = NULL;
+
+	return true;
+}
+
+extern "C" DLL_EXPORT bool ZYJ_GetCurOmrRes2(IplImage *pSrc, const int nPage, const int nOmrType,const int nThreshold, const int nRecType, ANS *dstAns, int nABFlag)
+{
+	CurImage curImgPara;
+	curImgPara.m_nThreshold = nThreshold;
+	//加载当期模板
+	USES_CONVERSION;
+	bool bRes = TRUE;
+
+	CxImage *srcImg = new CxImage();
+
+	if (pSrc == NULL)
+		return FALSE;
+
+	int nWidthSrc = pSrc->width;
+	int nHeightSrc = pSrc->height;
+
+	if (nWidthSrc*nHeightSrc <= 0)
+		return FALSE;
+
+	srcImg->Create(nWidthSrc, nHeightSrc, pSrc->depth, CXIMAGE_FORMAT_BMP);
+	srcImg->SetGrayPalette(); 
+
+	for (int i=0; i<nHeightSrc; i++)
+	{
+		memcpy(srcImg->info.pImage+i*BYTESPERLINE(nWidthSrc, 8), pSrc->imageData+(nHeightSrc-1-i)*BYTESPERLINE(nWidthSrc, 8), BYTESPERLINE(nWidthSrc, 8));   	
+	}
+
+	srcImg->GrayScale();
+	int nRectType = g_nLocalType;
+	curImgPara.v_rectModelLocal.clear();
+	curImgPara.v_modelRectArrays.clear();
+	curImgPara.v_OMRZuIDs.clear();
+	curImgPara.v_modelKhRectArray.clear();
+	
+	for (int i=0; i<g_v_rectModelLocal.size(); i++)
+	{
+		if (g_v_rectModelLocal[i].nPage == nPage)
+		{
+			curImgPara.v_rectModelLocal.push_back(g_v_rectModelLocal[i]);
+		}
+	}
+	
+	for (int i=0; i<g_v_modelRectArrays.size(); i++)
+	{
+		if (g_v_modelRectArrays[i].rect.nPage == nPage && g_v_modelRectArrays[i].nABFlag == nABFlag)
+		{
+			curImgPara.v_modelRectArrays.push_back(g_v_modelRectArrays[i]);
+		}
+	}
+	
+	for (int i=0; i<g_v_omrZuIDs.size(); i++)
+	{
+		if (g_v_omrZuIDs[i].nPage == nPage && g_v_omrZuIDs[i].nABFlag == nABFlag)
+		{
+			curImgPara.v_OMRZuIDs.push_back(g_v_omrZuIDs[i].nID);
+		}
+	}
+
+	for (int i=0; i<g_v_modelKhRA.size(); i++)
+	{
+		if (g_v_modelKhRA[i].rect.nPage == nPage)
+		{
+			curImgPara.v_modelKhRectArray.push_back(g_v_modelKhRA[i]);
+		}
+	}
+
+	if (curImgPara.v_rectModelLocal.size() < 3)
+	{
+		//g_imgProcess->m_nStatueRes = ERROR_LOCATE;
+		delete srcImg;
+		srcImg = NULL;
+		return FALSE;
+	}
+
+	//将定位点排序 以考虑图像上任意三个定位点问题
+	CRect rectLocals[3];
+	double dLenth[3] = {0.0, 0.0, 0.0};
+	for (int i=0; i<3; i++)
+	{
+		rectLocals[i] = NewRect2Rect(curImgPara.v_rectModelLocal[i]);
+	}
+	dLenth[0] = CImageProcess::GetLength(rectLocals[0].CenterPoint(), rectLocals[1].CenterPoint());
+	dLenth[1] = CImageProcess::GetLength(rectLocals[0].CenterPoint(), rectLocals[2].CenterPoint());
+	dLenth[2] = CImageProcess::GetLength(rectLocals[1].CenterPoint(), rectLocals[2].CenterPoint());
+
+	for (int i=0; i<3; i++)
+	{
+		if (abs(max(max(dLenth[0],dLenth[1]), dLenth[2]) - dLenth[i]) <= 0.00000001) //判断斜边选
+		{
+			if (i == 0)
+			{
+				NEWRECT modelTmps = curImgPara.v_rectModelLocal[0];
+				curImgPara.v_rectModelLocal[0] = curImgPara.v_rectModelLocal[2];
+				curImgPara.v_rectModelLocal[2] = modelTmps;
+			}
+			else if (i==1)
+			{
+				NEWRECT modelTmps = curImgPara.v_rectModelLocal[0];
+				curImgPara.v_rectModelLocal[0] = curImgPara.v_rectModelLocal[1];
+				curImgPara.v_rectModelLocal[1] = modelTmps;
+			}
+		}
+	}
+
+	//获取三个角定位点相关
+	//int nTime1 = GetTickCount();
+	for (int i=0; i<3; i++)
+	{
+		NEWRECT rectArea1;
+		NEWRECT dstRect;
+		rectArea1 = GetRectArea1(curImgPara.v_rectModelLocal[i], srcImg);
+		bRes = ZYJ_GetRectLocalPoint(rectArea1, curImgPara.v_rectModelLocal[i].GetWidth(), curImgPara.v_rectModelLocal[i].GetHeight(),
+		i, nRectType, dstRect, srcImg, &curImgPara);
+
+		if (!bRes)
+		{
+			//g_imgProcess->m_nStatueRes = ERROR_LOCATE;
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+	}
+
+	vector<RECTARRAY> v_dstRectArry;
+	if (nRecType == 1)  //考号 pany  2016.04.08
+	{
+		vector<RECTARRAY> v_dstArrayZuID;
+		if (curImgPara.v_modelKhRectArray.size() <= 0)
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+
+		bRes = ZYJ_GetRectArray(nOmrType, v_dstArrayZuID, 1, curImgPara.v_modelKhRectArray[0].nZuID, srcImg, &curImgPara);
+		if (!bRes)
+		{
+			delete srcImg;
+			srcImg = NULL;
+
+			//delete curImgPara;
+			//curImgPara = NULL;
+			return FALSE;
+		}
+
+		for (int j=0; j<v_dstArrayZuID.size(); j++)
+			v_dstRectArry.push_back(v_dstArrayZuID[j]);
+
+		int nSize1 = curImgPara.v_modelKhRectArray.size();
+		if (nSize1  == 0)
+		{
+			delete srcImg;
+			srcImg = NULL;
+
+			/*delete curImgPara;
+			curImgPara = NULL;*/
+			return FALSE;
+		}
+
+		//RECTARRAY *dstRectArray1 =  new RECTARRAY[nSize1];
+		if (v_dstRectArry.size() == 0) //未成功获取到
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+
+		}
+
+		if (v_dstRectArry.size() != nSize1 )
+		{
+			vector<RECTARRAY> v_curRectArrayTmp1 = v_dstRectArry;
+			if (!GetRectArry_1(v_dstRectArry, v_curRectArrayTmp1, curImgPara.v_modelKhRectArray, srcImg, curImgPara.m_nThreshold))
+			{
+
+				delete srcImg;
+				srcImg = NULL;
+				return FALSE;
+			}
+		}
+
+		ZYJ_GetOmrResult(v_dstRectArry, nSize1, 0, curImgPara.v_modelKhRectArray, curImgPara.m_nAverGrayValue);
+		//ZYJ_GetOmrResult(v_dstRectArry, nSize1, 1, curImgPara);
+		int nKhLen = v_dstRectArry.size()/10;
+		CString strTmp = _T("");
+		int nCount = 0; //每列填涂的个数
+		CString strTmp1 = _T("");
+		double dDensity = 0.0;
+		for (int j=0; j<v_dstRectArry.size(); j++)
+		{
+			if (j%10 == 0)
+			{
+				nCount = 0;
+				strTmp1 = _T("-");
+				dDensity = 0.0;
+			}
+
+			if (v_dstRectArry[j].nFilling == 1)
+			{
+				nCount++;
+				if (nCount > 1)
+				{
+					if (v_dstRectArry[j].dDensity > dDensity)
+					{
+						dDensity = v_dstRectArry[j].dDensity;
+						strTmp1.Format(L"%d", j%10);
+					}
+				}
+				else
+				{
+					dDensity = v_dstRectArry[j].dDensity;
+					strTmp1.Format(L"%d", j%10);
+				}
+				
+			}
+
+			if (j%10 ==  9)
+			{
+				strTmp += strTmp1;
+			}
+		}
+
+		if (strTmp.GetLength() > 26)
+		{
+			//g_imgProcess->m_nStatueRes = ERROR_RECOGNIZE;
+			/*delete []dstRectArray1;
+			dstRectArray1 = NULL;*/
+			delete srcImg;
+			srcImg = NULL;
+
+			/*delete curImgPara;
+			curImgPara = NULL;*/
+			return FALSE;
+		
+		}
+
+		dstAns[0].nID = curImgPara.v_modelKhRectArray[0].nZuID;
+		memcpy(dstAns[0].cAnswer, T2A(strTmp), strTmp.GetLength());
+		
+	/*	delete []dstRectArray1;
+		dstRectArray1 = NULL;*/
+		delete srcImg;
+		srcImg = NULL;
+
+		//delete curImgPara;
+		//curImgPara = NULL;
+		return TRUE;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	int nSize = curImgPara.v_modelRectArrays.size();
+	if (nSize  == 0)
+	{
+		delete srcImg;
+		srcImg = NULL;
+
+		//delete curImgPara;
+		//curImgPara = NULL;
+		return FALSE;
+	}
+
+	//RECTARRAY *dstRectArray =  new RECTARRAY[nSize];
+	
+	for (int i=0; i<curImgPara.v_OMRZuIDs.size(); i++)
+	{
+		vector<RECTARRAY> v_dstArrayZuID;
+
+		//if (curImgPara->v_OMRZuIDs[i] == 21)
+		//	int kk =0;
+		bRes = ZYJ_GetRectArray(nOmrType, v_dstArrayZuID, 0, curImgPara.v_OMRZuIDs[i], srcImg, &curImgPara);
+	
+		if (!bRes)
+			continue;
+
+		for (int j=0; j<v_dstArrayZuID.size(); j++)
+			v_dstRectArry.push_back(v_dstArrayZuID[j]);
+		
+	}
+
+	if (v_dstRectArry.size() == 0) //未成功获取到
+	{
+		delete srcImg;
+		srcImg = NULL;
+		return FALSE;
+
+	}
+
+	if (v_dstRectArry.size() != nSize )
+	{
+		vector<RECTARRAY> v_curRectArrayTmp = v_dstRectArry;
+		if (!GetRectArry_1(v_dstRectArry, v_curRectArrayTmp, curImgPara.v_modelRectArrays, srcImg, curImgPara.m_nThreshold))
+		{
+			delete srcImg;
+			srcImg = NULL;
+			return FALSE;
+		}
+	}
+	
+	ZYJ_GetOmrResult(v_dstRectArry, nSize, 0, curImgPara.v_modelRectArrays, curImgPara.m_nAverGrayValue);
+
+	//将识别结果分配至对应ID当中
+	int nID1 = -1;
+	ANS ansTmp;
+	CString strAns = L"";
+	CString strCheckAns = L"";
+	vector<ANS> v_ans;
+	vector<ANS> v_ansCheck;
+	for (int i=0; i < nSize; i++)
+	{
+		RECTARRAY rArrayTmp = v_dstRectArry[i];
+		//TRACE("ID:%d, %d, %d, %.4f, %d\n", rArrayTmp.nQuestionNo-6, rArrayTmp.rect.pTopLeft.nX,  rArrayTmp.rect.pTopLeft.nY, rArrayTmp.dDensity, rArrayTmp.nAverGrayValue);
+
+		if (rArrayTmp.nQuestionNo == -1)
+			return FALSE;
+
+		if (rArrayTmp.nQuestionNo > nID1 )
+		{
+			ansTmp.nID = rArrayTmp.nQuestionNo;
+			nID1 = rArrayTmp.nQuestionNo;
+
+			if (v_ans.size() > 0)
+				memcpy(v_ans[v_ans.size()-1].cAnswer, T2A(strAns), strAns.GetLength());
+			v_ans.push_back(ansTmp);
+			strAns = L"";
+		}
+
+		if (rArrayTmp.nFilling == 1) //已填涂
+		{
+			char c[2];
+			c[0] = 'A' + rArrayTmp.nAnswerIndex;
+			c[1] = '\0';
+			strAns += A2T(c);
+		}
+		else  //未填涂 
+			strAns += L"";
+
+		if (i == nSize -1)
+		{
+			if (v_ans.size() > 0)
+				memcpy(v_ans[v_ans.size()-1].cAnswer, T2A(strAns), strAns.GetLength());
+		}
+	}
+
+	if (v_ans.size() > 0)
+	{
+		for (int i=0; i<v_ans.size(); i++)
+		{
+			dstAns[i] = v_ans[i];
+			CString strText1 = A2T(dstAns[i].cAnswer);
+			if (strText1.IsEmpty())
+			{
+				strText1 = _T("*");
+				memcpy(dstAns[i].cAnswer, T2A(strText1), strText1.GetLength());
+			}
+
+			//TRACE("ID:%d, 答案：%s\n", dstAns[i].nID, dstAns[i].cAnswer);
+		}
+	}
+	//delete []dstRectArray;
+	//dstRectArray = NULL;
+	//g_imgProcess->m_nStatueRes = RES_SUCCESS;
+
+	delete srcImg;
+	srcImg = NULL;
+
+	//delete curImgPara;
+	//curImgPara = NULL;
+	return TRUE;
+
+}
+
+extern "C" DLL_EXPORT bool ZYJ_GetImgSize(const char *cPath,  int &nImgWidth, int &nImgHeight)
+{
+	CxImage srcImg;
+	USES_CONVERSION;
+	CString strPath = A2T(cPath);
+	int nFileType = GetFileType1(strPath);
+	bool bRes = srcImg.Load(strPath, nFileType);
+
+	if (!bRes)
+		return false;
+
+	srcImg.GrayScale();
+	nImgWidth = srcImg.GetWidth();
+	nImgHeight = srcImg.GetHeight();
+}
+
+
+>>>>>>> c3ec4193a47e985f94758967b6bacfb8a4ab020b
