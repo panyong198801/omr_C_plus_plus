@@ -1,0 +1,5 @@
+*.js linguist-language=C++
+*.css linguist-language=C++
+*.html linguist-language=C++
+*.cpp linguist-language=C++
+*.h linguist-language=C++
