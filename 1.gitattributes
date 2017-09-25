@@ -1,5 +1,0 @@
-.js linguist-language = c++
-*.css linguist-language = c++
-*.html linguist-language = c++
-*.cpp linguist-language = c++
-*.h linguist-language = c++
