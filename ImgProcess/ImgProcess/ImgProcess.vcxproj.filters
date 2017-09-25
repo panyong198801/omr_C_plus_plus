@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{101722c4-30ca-4308-be60-a90ef2fcd0e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="xml">
+      <UniqueIdentifier>{5d4e2fd7-f468-43e3-b2d4-8590369ea67b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CurImage.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageProcess.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImageReaderSource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImgProcess.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ImgRecQR.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="jpgd.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="lodepng.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="xml\Markup.cpp">
+      <Filter>xml</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ImgProcess.def">
+      <Filter>源文件</Filter>
+    </None>
+    <None Include="res\ImgProcess.rc2">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="ClassDiagram1.cd" />
+    <None Include="Image\CxImage\cximage.sln" />
+    <None Include="..\..\..\..\..\zxing-2.3.0\zxing-2.3.0\cpp\vs2008\zxing.sln" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CurImage.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageProcess.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageReaderSource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImgProcess.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ImgRecQR.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="jpgd.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="lodepng.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenCVBitmapSource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="xml\Markup.h">
+      <Filter>xml</Filter>
+    </ClInclude>
+    <ClInclude Include="IImgProcHelp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ImgProcess.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="include\zyj-dllexport.h">
+      <Filter>include</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>
